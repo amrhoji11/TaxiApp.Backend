@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,13 +54,13 @@ namespace TaxiApp.DAL.Data
                       .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(m => m.Order)
-                      .WithMany(m=>m.Messages) // أو WithMany(o => o.Messages) إذا عندك ICollection
+                      .WithMany(m => m.Messages) // أو WithMany(o => o.Messages) إذا عندك ICollection
                       .HasForeignKey(m => m.OrderId)
                       .OnDelete(DeleteBehavior.SetNull);
 
                 // Trip relationship (Optional)
                 entity.HasOne(m => m.Trip)
-                      .WithMany(m=>m.Messages) // أو WithMany(t => t.Messages)
+                      .WithMany(m => m.Messages) // أو WithMany(t => t.Messages)
                       .HasForeignKey(m => m.TripId)
                       .OnDelete(DeleteBehavior.SetNull);
             });
@@ -103,12 +104,12 @@ namespace TaxiApp.DAL.Data
                       .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(r => r.Rater)
-         .WithMany(r=>r.RatingsGiven) // أو WithMany(u => u.RatingsGiven)
+         .WithMany(r => r.RatingsGiven) // أو WithMany(u => u.RatingsGiven)
          .HasForeignKey(r => r.RaterUserId)
          .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(r => r.Target)
-                      .WithMany(r=>r.RatingsReceived) // أو WithMany(u => u.RatingsReceived)
+                      .WithMany(r => r.RatingsReceived) // أو WithMany(u => u.RatingsReceived)
                       .HasForeignKey(r => r.TargetUserId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
@@ -130,7 +131,7 @@ namespace TaxiApp.DAL.Data
                       .IsUnique()
                       .HasFilter("[LeftAt] IS NULL");
 
-               
+
             });
 
             builder.Entity<OrderReview>(entity =>
@@ -145,5 +146,40 @@ namespace TaxiApp.DAL.Data
                       .HasForeignKey(r => r.ReviewedByUserId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
-        }  }   }
+        }
+
+            public DbSet<Driver> Drivers { get; set; }
+        public DbSet<DriverApproval> DriverApprovals { get; set; }
+        public DbSet<DriverLocation>  DriverLocations { get; set; }
+        public DbSet<Message>  Messages{ get; set; }
+
+        public DbSet<Notification> Notifications { get; set; }
+
+        public DbSet<OfficeQueueEntry> OfficeQueueEntries { get; set; }
+
+        public DbSet<Order> Orders { get; set; }
+
+        public DbSet<OrderReview> OrderReviews { get; set; }
+        public DbSet<Passenger> Passengers { get; set; }
+        public DbSet<Rating> Ratings { get; set; }
+        public DbSet<Trip> Trips { get; set; }
+        public DbSet<TripOrder> TripOrders { get; set; }
+        public DbSet<UserBlock> UserBlocks { get; set; }
+        public DbSet<Vehicle> Vehicles { get; set; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+}   }
 
