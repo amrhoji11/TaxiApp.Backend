@@ -8,3 +8,6 @@ obj/
 # User-specific files
 *.user
 *.suo
+
+# ASP.NET
+appsettings.Development.json
