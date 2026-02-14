@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -151,6 +152,7 @@ namespace TaxiApp.Backend.Infrastructure.Data
                       .HasForeignKey(r => r.ReviewedByUserId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
+
         }
 
         public DbSet<Driver> Drivers { get; set; }

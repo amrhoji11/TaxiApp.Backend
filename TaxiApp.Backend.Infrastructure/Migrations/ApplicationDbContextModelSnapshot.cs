@@ -229,6 +229,46 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "passenger-1",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "bb2c40bc-105f-4fd6-a9b4-1fe5db06b8a9",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "passenger1@test.com",
+                            EmailConfirmed = true,
+                            FirstName = "Ahmad",
+                            LastName = "Ali",
+                            LockoutEnabled = false,
+                            NormalizedEmail = "PASSENGER1@TEST.COM",
+                            NormalizedUserName = "PASSENGER1",
+                            PasswordHash = "AQAAAAIAAYagAAAAEA3hkZkcrJ7v4L6uLn0+C9aiVjl4rUNA0hTm3BgObuTzncO8pqFe8uMNLgegs7Ftug==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "35b533ef-a483-440d-b03f-89b3ae01288f",
+                            TwoFactorEnabled = false,
+                            UserName = "passenger1"
+                        },
+                        new
+                        {
+                            Id = "passenger-2",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "c41279ce-dd41-4fe9-b12b-0aae75dde8a3",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "passenger2@test.com",
+                            EmailConfirmed = true,
+                            FirstName = "Omar",
+                            LastName = "Hassan",
+                            LockoutEnabled = false,
+                            NormalizedEmail = "PASSENGER2@TEST.COM",
+                            NormalizedUserName = "PASSENGER2",
+                            PasswordHash = "AQAAAAIAAYagAAAAEOZI+mdkLFg3Ri9fthx0RcWRAZx+RcCNqcoJdKeKekLoHqyVZu8qb3dmM+bt3Go1Sg==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "1addd63f-4733-46dc-902d-6b3ff94809a3",
+                            TwoFactorEnabled = false,
+                            UserName = "passenger2"
+                        });
                 });
 
             modelBuilder.Entity("TaxiApp.Backend.Core.Models.Driver", b =>
@@ -570,6 +610,20 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("Passengers");
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = "passenger-1",
+                            Address = "Ramallah",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            UserId = "passenger-2",
+                            Address = "Nablus",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        });
                 });
 
             modelBuilder.Entity("TaxiApp.Backend.Core.Models.Rating", b =>

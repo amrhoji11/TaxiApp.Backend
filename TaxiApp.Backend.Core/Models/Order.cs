@@ -16,11 +16,12 @@ namespace TaxiApp.Backend.Core.Models
 
     public enum OrderStatus
     {
-        Pending = 0,          // الطلب تم إنشاؤه وبانتظار معالجة/موافقة
-        SearchingDriver = 1,  // النظام يبحث عن سائق
-        AssignedToTrip = 2,   // تم ربط الطلب برحلة Trip (يعني صار له سائق)
-        Cancelled = 3,        // تم إلغاء الطلب
-        Completed = 4         // تم تنفيذ الطلب بالكامل
+        Pending = 0,
+        SearchingDriver = 1,
+        PendingOfficeReview = 2,
+        AssignedToTrip = 3,
+        Cancelled = 4,
+        Completed = 5
     }
 
 

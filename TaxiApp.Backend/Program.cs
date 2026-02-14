@@ -1,38 +1,39 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using TaxiApp.Backend.Core;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using TaxiApp.Backend.Core.Interfaces;
 using TaxiApp.Backend.Core.Models;
 using TaxiApp.Backend.Infrastructure.Data;
 using TaxiApp.Backend.Infrastructure.Repositories;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using TaxiApp.Backend.Infrastructure; // لضمان عمل DbSeeder
 
 namespace TaxiApp.Backend
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // 1. إضافة الـ Controllers والـ Swagger
+            // 1. إضافة الـ Controllers مع منع الدوران اللانهائي (من كودك)
             builder.Services.AddControllers()
-     .AddJsonOptions(options =>
-     {
-         // هذا السطر يمنع الدوران اللانهائي في البيانات
-         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-     });
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+                });
+
+            // دعم Swagger و OpenAPI
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddOpenApi();
 
-            // 2. إعداد قاعدة البيانات
+            // 2. إعداد قاعدة البيانات (المشترك بينكما)
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            // 3. إعداد الـ Identity (الهوية)
+            // 3. إعداد الـ Identity مع خيارات كلمة المرور (من كودك)
             builder.Services.AddIdentityCore<ApplicationUser>(options => {
                 options.Password.RequireDigit = false;
                 options.Password.RequiredLength = 1;
@@ -44,7 +45,7 @@ namespace TaxiApp.Backend
             .AddSignInManager<SignInManager<ApplicationUser>>()
             .AddEntityFrameworkStores<ApplicationDbContext>();
 
-            // 4. 🔥 إعدادات الـ Authentication لقراءة الـ JWT
+            // 4. إعدادات الـ Authentication والـ JWT (من كودك)
             builder.Services.AddAuthentication(options => {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -62,32 +63,32 @@ namespace TaxiApp.Backend
 
             builder.Services.AddAuthorization();
 
-            // 5. تسجيل الخدمات (Dependency Injection)
+            // 5. تسجيل كافة الخدمات (من الطرفين)
+            builder.Services.AddScoped<IOrderRepository, OrderRepository>();
             builder.Services.AddScoped<IAuthRepository, AuthRepository>();
             builder.Services.AddScoped<JwtService>();
             builder.Services.AddScoped<IDriverRepository, DriverRepository>();
 
             var app = builder.Build();
 
-            // 6. 🔥 تعريف الأدوار تلقائياً عند تشغيل السيرفر (Seeding)
+            // 6. تشغيل الـ Seeding (الأدوار والبيانات الأولية)
             using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
+
+                // أولاً: دمج منطق الـ Roles من كودك
                 var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-
                 string[] roleNames = { "SuperAdmin", "Admin", "Driver", "Passenger" };
-
                 foreach (var roleName in roleNames)
                 {
-                    // فحص وجود الدور بدون استخدام await مباشرة
-                    var roleExist = roleManager.RoleExistsAsync(roleName).GetAwaiter().GetResult();
-
-                    if (!roleExist)
+                    if (!await roleManager.RoleExistsAsync(roleName))
                     {
-                        // إنشاء الدور بدون استخدام await مباشرة
-                        roleManager.CreateAsync(new IdentityRole(roleName)).GetAwaiter().GetResult();
+                        await roleManager.CreateAsync(new IdentityRole(roleName));
                     }
                 }
+
+                // ثانياً: دمج الـ DbSeeder من كود زميلك
+                await DbSeeder.SeedPassengersAsync(services);
             }
 
             // 7. إعدادات الـ Middleware
@@ -95,11 +96,12 @@ namespace TaxiApp.Backend
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+                app.MapOpenApi();
             }
 
             app.UseHttpsRedirection();
 
-            // الترتيب هنا "مقدس": المصادقة أولاً ثم التصريح
+            // الترتيب "المقدس"
             app.UseAuthentication();
             app.UseAuthorization();
 
