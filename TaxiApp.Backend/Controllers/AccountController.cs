@@ -43,19 +43,35 @@ namespace TaxiApp.Backend.Api.Controllers
             return Ok(response);
         }
 
+        // 1. طلب تسجيل الدخول (يرسل الرمز للهاتف)
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             try
             {
-                var respones = await _authRepository.LoginAsync(request);
-
-                return Ok(respones);
+                var message = await _authRepository.LoginAsync(request);
+                // ملاحظة: في مرحلة التطوير الرمز يرجع في الـ Response لسهولة التجربة
+                return Ok(new { Message = message });
             }
-
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { Error = ex.Message });
+            }
+        }
+
+        // 2. التحقق من الرمز والحصول على التوكن (للمكتب والجميع)
+        [HttpPost("verify-otp")]
+        public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest request)
+        {
+            try
+            {
+                var response = await _authRepository.VerifyOtpAndLoginAsync(request);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                // إذا كان الرمز خطأ أو منتهي الصلاحية سيصل هنا
+                return Unauthorized(new { Error = ex.Message });
             }
         }
 

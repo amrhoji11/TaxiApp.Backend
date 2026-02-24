@@ -1,21 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TaxiApp.Backend.Core.Models;
 
-namespace TaxiApp.Backend.Core.Models
+namespace TaxiApp.Backend.Core.DTO_S
 {
-
-
-    public class Vehicle
+    public class VehiclesResponseDto
     {
         [Key]
         public int VehicleId { get; set; }
-        
-        
+
+        [Required]
         [ForeignKey(nameof(Driver))]
         public string? DriverId { get; set; }
 
@@ -35,10 +34,8 @@ namespace TaxiApp.Backend.Core.Models
         public bool IsActive { get; set; }
         public bool IsCurrent { get; set; }
 
-        public DateTime CreatedAt { get; set; }= DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
-        // Navigation
-        public Driver? Driver { get; set; }
     }
 }

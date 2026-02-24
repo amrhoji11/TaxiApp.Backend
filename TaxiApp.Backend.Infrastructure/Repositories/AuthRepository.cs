@@ -38,6 +38,17 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
         // 1. تسجيل الراكب (Passenger)
         public async Task<RegisterPassengerResponse> RegisterPassengerAsync(RegisterPassengerRequest request)
         {
+            var existingUser = await userManager.FindByNameAsync(request.PhoneNumber);
+
+            if (existingUser != null)
+                return new RegisterPassengerResponse
+                {
+                    UserId = existingUser.Id,
+                    FullName = $"{existingUser.FirstName} {existingUser.LastName}",
+                    PhoneNumber = existingUser.PhoneNumber,
+                    Message = "رقم الهاتف مسجل مسبقاً، يرجى تسجيل الدخول."
+                };
+
             var user = new ApplicationUser
             {
                 UserName = request.PhoneNumber,
@@ -66,16 +77,34 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
                 {
                     UserId = user.Id.ToString(),
                     FullName = $"{user.FirstName} {user.LastName}",
-                    PhoneNumber = user.PhoneNumber
+                    PhoneNumber = user.PhoneNumber,
+                    Message= "تم إنشاء الحساب بنجاح."
                 };
             }
 
-            throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
+            // إذا فشل الإنشاء، نضع كل الأخطاء في Message مفصلة
+            var errors = string.Join(", ", result.Errors.Select(e => $"{e.Code}: {e.Description}"));
+
+            return new RegisterPassengerResponse
+            {
+                Message = $"فشل إنشاء الحساب: {errors}"
+            };
         }
 
         // 2. تسجيل السائق (Driver) - تم تحديثه ✅
         public async Task<RegisterDriverResponse> RegisterDriverAsync(RegisterDriverRequest request)
         {
+            var existingUser = await userManager.FindByNameAsync(request.PhoneNumber);
+
+            if (existingUser != null)
+                return new RegisterDriverResponse
+                {
+                    UserId=existingUser.Id,
+                    FullName =$"{existingUser.FirstName} {existingUser.LastName}",
+                    PhoneNumber=existingUser.PhoneNumber,
+                    Message = "رقم الهاتف مسجل مسبقاً، يرجى تسجيل الدخول."
+                };
+
             var user = new ApplicationUser
             {
                 UserName = request.PhoneNumber,
@@ -95,44 +124,108 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
                 var driver = new Driver
                 {
                     UserId = user.Id,
-                    Status = DriverStatus.Pending // السائق يبدأ بحالة معلق بانتظار الموافقة
+                    Status = DriverStatus.offline // السائق يبدأ بحالة معلق بانتظار الموافقة
+                };
+
+                // إنشاء Approval تلقائياً
+                var approval = new DriverApproval
+                {
+                    DriverId = user.Id,
+                    Status = ApprovalStatus.pending
                 };
 
                 _context.Drivers.Add(driver);
+                _context.DriverApprovals.Add(approval);
                 await _context.SaveChangesAsync();
 
                 return new RegisterDriverResponse
                 {
-                    UserId = user.Id.ToString(),
-                    FullName = $"{user.FirstName} {user.LastName}"
+                    UserId = user.Id,
+                    FullName = $"{user.FirstName} {user.LastName}",
+                    PhoneNumber = user.PhoneNumber,
+                    Message = "تم إنشاء الحساب بنجاح، بانتظار موافقة المكتب."
                 };
             }
 
-            throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
+            // إذا فشل الإنشاء، نضع كل الأخطاء في Message مفصلة
+            var errors = string.Join(", ", result.Errors.Select(e => $"{e.Code}: {e.Description}"));
+
+            return new RegisterDriverResponse
+            {
+                Message = $"فشل إنشاء الحساب: {errors}"
+            };
         }
 
         // 3. تسجيل الدخول (Login)
-        public async Task<LoginResponse> LoginAsync(LoginRequest request)
+        public async Task<string> LoginAsync(LoginRequest request)
         {
             var user = await userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == request.PhoneNumber);
+            if (user == null) return"رقم الهاتف غير مسجل.";
 
-            if (user == null)
+            // 🔎 جلب أدوار المستخدم
+            var userRoles = await userManager.GetRolesAsync(user);
+            var role = userRoles.FirstOrDefault();
+
+            // 🚫 إذا كان Driver نتحقق من الموافقة أولاً
+            if (role == "Driver")
             {
-                throw new Exception("رقم الهاتف الذي أدخلته غير مسجل لدينا.");
+                var approval = await _context.DriverApprovals
+                    .FirstOrDefaultAsync(a => a.DriverId == user.Id);
+
+                if (approval == null)
+                   return "طلب السائق غير موجود.";
+
+                if (approval.Status == ApprovalStatus.pending)
+                    return "لا يمكنك تسجيل الدخول حتى تتم الموافقة عليك من قبل المكتب.";
+
+                if (approval.Status == ApprovalStatus.rejected)
+                    return "تم رفض طلب تسجيلك من قبل المكتب.";
             }
 
-            //  جلب الأدوار الحقيقية بدلاً من القيمة الثابتة
+            // توليد الرمز المدمج (سيستخدم إعداد الـ 5 دقائق الذي وضعناه)
+            var otpCode = await userManager.GenerateTwoFactorTokenAsync(user, "Phone");
+
+            // هنا يتم إرسال الـ otpCode للمكتب
+            return $"تم إرسال رمز الدخول: {otpCode}";
+        }
+
+
+        public async Task<LoginResponse> VerifyOtpAndLoginAsync(VerifyOtpRequest request)
+        {
+            var user = await userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == request.PhoneNumber);
+            if (user == null) throw new Exception("المستخدم غير موجود.");
+
+            // التحقق الرسمي من مايكروسوفت
+            var isValid = await userManager.VerifyTwoFactorTokenAsync(user, "Phone", request.OtpCode);
+
+            if (!isValid) throw new Exception("الرمز خاطئ أو انتهت صلاحيته.");
+
+            // جلب الدور الحقيقي (سيكون Admin في حالة المكتب)
             var userRoles = await userManager.GetRolesAsync(user);
             var role = userRoles.FirstOrDefault() ?? "Passenger";
 
-            // مرر الدور الحقيقي للتوكن
+            if (role == "Driver")
+            {
+                var approval = await _context.DriverApprovals
+                    .FirstOrDefaultAsync(a => a.DriverId == user.Id);
+
+                if (approval == null)
+                    throw new Exception("طلب السائق غير موجود.");
+
+                if (approval.Status == ApprovalStatus.pending)
+                    throw new Exception("لم يتم قبولك بعد من قبل المكتب.");
+
+                if (approval.Status == ApprovalStatus.rejected)
+                    throw new Exception("تم رفض طلب تسجيلك.");
+            }
+
             var token = jwtService.GenerateToken(user, role);
 
             return new LoginResponse
             {
                 Token = token,
-                UserId = user.Id.ToString(),
-                Role = role // الآن يرجع الدور الحقيقي (SuperAdmin, Driver, إلخ)
+                UserId = user.Id,
+                Role = role
             };
         }
     }

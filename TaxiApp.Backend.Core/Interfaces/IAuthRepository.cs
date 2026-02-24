@@ -11,7 +11,8 @@ namespace TaxiApp.Backend.Core.Interfaces
 {
     public interface IAuthRepository
     {
-        Task<LoginResponse> LoginAsync(LoginRequest request);
+        Task<string> LoginAsync(LoginRequest request);
+        Task<LoginResponse> VerifyOtpAndLoginAsync(VerifyOtpRequest request);
         Task<RegisterPassengerResponse> RegisterPassengerAsync(RegisterPassengerRequest request);
         Task<RegisterDriverResponse> RegisterDriverAsync(RegisterDriverRequest request);
     }

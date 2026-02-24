@@ -20,7 +20,7 @@ namespace TaxiApp.Backend.Core.Models
 
         public ApprovalStatus Status { get; set; }
 
-        public string ReviewedByUserId { get; set; }
+        public string? ReviewedByUserId { get; set; }
         public DateTime? ReviewedAt { get; set; }
         [MaxLength(500)]
         public string? Notes { get; set; }

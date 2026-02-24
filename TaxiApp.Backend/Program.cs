@@ -7,7 +7,8 @@ using TaxiApp.Backend.Core.Interfaces;
 using TaxiApp.Backend.Core.Models;
 using TaxiApp.Backend.Infrastructure.Data;
 using TaxiApp.Backend.Infrastructure.Repositories;
-using TaxiApp.Backend.Infrastructure; // لضمان عمل DbSeeder
+using TaxiApp.Backend.Infrastructure;
+using TaxiApp.Backend.Core; // لضمان عمل DbSeeder
 
 namespace TaxiApp.Backend
 {
@@ -26,7 +27,6 @@ namespace TaxiApp.Backend
 
             // دعم Swagger و OpenAPI
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
             builder.Services.AddOpenApi();
 
             // 2. إعداد قاعدة البيانات (المشترك بينكما)
@@ -34,23 +34,38 @@ namespace TaxiApp.Backend
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             // 3. إعداد الـ Identity مع خيارات كلمة المرور (من كودك)
-            builder.Services.AddIdentityCore<ApplicationUser>(options => {
+            builder.Services.AddIdentityCore<ApplicationUser>(options =>
+            {
                 options.Password.RequireDigit = false;
                 options.Password.RequiredLength = 1;
                 options.Password.RequireLowercase = false;
                 options.Password.RequireUppercase = false;
                 options.Password.RequireNonAlphanumeric = false;
+
+                // --- إضافة هذا الجزء لتغيير مدة الـ OTP ---
+                options.Tokens.AuthenticatorTokenProvider = TokenOptions.DefaultPhoneProvider;
+                options.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultEmailProvider;
+                options.Tokens.ChangePhoneNumberTokenProvider = TokenOptions.DefaultPhoneProvider;
             })
             .AddRoles<IdentityRole>()
             .AddSignInManager<SignInManager<ApplicationUser>>()
-            .AddEntityFrameworkStores<ApplicationDbContext>();
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
+
+            // تعيين مدة الصلاحية لكل الرموز (OTP) إلى 5 دقائق
+            builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+            {
+                options.TokenLifespan = TimeSpan.FromMinutes(2);
+            });
 
             // 4. إعدادات الـ Authentication والـ JWT (من كودك)
-            builder.Services.AddAuthentication(options => {
+            builder.Services.AddAuthentication(options =>
+            {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
-            .AddJwtBearer(options => {
+            .AddJwtBearer(options =>
+            {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -66,8 +81,13 @@ namespace TaxiApp.Backend
             // 5. تسجيل كافة الخدمات (من الطرفين)
             builder.Services.AddScoped<IOrderRepository, OrderRepository>();
             builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+            builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
+            builder.Services.AddScoped<IUserBlockRepository, UserBlockRepository>();
+
+
+
             builder.Services.AddScoped<JwtService>();
-            builder.Services.AddScoped<IDriverRepository, DriverRepository>();
+            builder.Services.AddScoped<IDriverApprovalRepository, DriverApprovalRepository>();
 
             var app = builder.Build();
 
@@ -88,26 +108,25 @@ namespace TaxiApp.Backend
                 }
 
                 // ثانياً: دمج الـ DbSeeder من كود زميلك
-                await DbSeeder.SeedPassengersAsync(services);
+                await DbSeeder.SeedAdminAsync(services); // إضافة هذا السطر            }
+
+                // 7. إعدادات الـ Middleware
+                if (app.Environment.IsDevelopment())
+                {
+
+                    app.MapOpenApi();
+                }
+
+                app.UseHttpsRedirection();
+
+                // الترتيب "المقدس"
+                app.UseAuthentication();
+                app.UseAuthorization();
+
+                app.MapControllers();
+
+                app.Run();
             }
-
-            // 7. إعدادات الـ Middleware
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-                app.MapOpenApi();
-            }
-
-            app.UseHttpsRedirection();
-
-            // الترتيب "المقدس"
-            app.UseAuthentication();
-            app.UseAuthorization();
-
-            app.MapControllers();
-
-            app.Run();
         }
     }
 }

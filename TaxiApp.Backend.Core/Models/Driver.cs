@@ -9,10 +9,10 @@ namespace TaxiApp.Backend.Core.Models
 {
     public enum DriverStatus
     {
-        Pending = 0,
-        available = 1,
-        busy = 2,
-        offline = 3
+        
+        available = 0,
+        busy = 1,
+        offline = 2
     }
     public class Driver
     {
