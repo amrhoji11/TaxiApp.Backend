@@ -21,9 +21,9 @@ namespace TaxiApp.Backend.Api.Controllers
         }
 
         [HttpGet("pending")]
-        public async Task<IActionResult> GetPendingDrivers()
+        public async Task<IActionResult> GetPendingDrivers([FromQuery] int pageNumber, [FromQuery] int pageSize)
         {
-            var drivers = await _driverApprovalRepository.GetPendingDriversAsync();
+            var drivers = await _driverApprovalRepository.GetPendingDriversAsync(pageNumber, pageSize);
             return Ok(drivers);
         }
 

@@ -81,6 +81,7 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
             if (currentVehicle != null)
             {
                 currentVehicle.IsCurrent = false;
+                currentVehicle.DriverId = null;
             }
 
             // 2️⃣ ربط السيارة الجديدة
@@ -160,9 +161,16 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
         }
         
 
-        public async Task<IEnumerable<Vehicle>> GetUnassignedAsync()
+        public async Task<IEnumerable<Vehicle>> GetUnassignedAsync(int pageNumber = 1, int pageSize = 10)
         {
-            return await context.Vehicles.Include(a => a.Driver).Where(a => a.DriverId == null).ToListAsync();
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            return await context.Vehicles
+                                .Include(a => a.Driver)
+                                .Where(a => a.DriverId == null).OrderBy(a => a.CreatedAt) 
+                                .Skip((pageNumber - 1) * pageSize)
+                                .Take(pageSize).ToListAsync();
             
         }
 

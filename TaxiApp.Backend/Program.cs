@@ -90,6 +90,8 @@ namespace TaxiApp.Backend
             builder.Services.AddScoped<IAuthRepository, AuthRepository>();
             builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
             builder.Services.AddScoped<IUserBlockRepository, UserBlockRepository>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
+
 
 
             builder.Services.AddScoped<JwtService>();

@@ -18,6 +18,7 @@ namespace TaxiApp.Backend.Core.DTO_S
         [ForeignKey(nameof(Driver))]
         public string? DriverId { get; set; }
 
+
         public string? PlatePhotoUrl { get; set; }
         [Required]
         [MaxLength(20)]

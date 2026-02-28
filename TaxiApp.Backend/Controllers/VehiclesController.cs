@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using TaxiApp.Backend.Core.DTO_S;
 using TaxiApp.Backend.Core.Interfaces;
+using TaxiApp.Backend.Core.Models;
+using TaxiApp.Backend.Infrastructure.Repositories;
 
 namespace TaxiApp.Backend.Api.Controllers
 {
@@ -14,15 +16,23 @@ namespace TaxiApp.Backend.Api.Controllers
     public class VehiclesController : ControllerBase
     {
         private readonly IVehicleRepository vehicleRepository;
+        private readonly IUserBlockRepository userBlockRepository;
+        private readonly IUserRepository userRepository;
 
-        public VehiclesController(IVehicleRepository vehicleRepository)
+        public VehiclesController(IVehicleRepository vehicleRepository,IUserBlockRepository userBlockRepository,IUserRepository userRepository)
         {
             this.vehicleRepository = vehicleRepository;
+            this.userBlockRepository = userBlockRepository;
+            this.userRepository = userRepository;
         }
         [HttpGet("GetAll")]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] int pageNumber, [FromQuery] int pageSize)
         {
-            var vehicles = await vehicleRepository.GetAll();
+            var vehicles = await vehicleRepository.GetAll(expression:null,
+                                                      includes: null,  // أو يمكنك إضافة includes إذا تريد جلب العلاقات
+                                                      isTracked: false,
+                                                      pageNumber: pageNumber,
+                                                      pageSize: pageSize);
             if (vehicles == null)
             {
                 return NotFound();
@@ -67,9 +77,9 @@ namespace TaxiApp.Backend.Api.Controllers
 
         }
         [HttpGet("GetUnassignedAsync")]
-        public async Task<IActionResult> GetUnassignedAsync()
+        public async Task<IActionResult> GetUnassignedAsync([FromQuery] int pageNumber, [FromQuery] int pageSize)
         {
-            var vehicle = await vehicleRepository.GetUnassignedAsync();
+            var vehicle = await vehicleRepository.GetUnassignedAsync(pageNumber, pageSize);
             return Ok(vehicle.Adapt<IEnumerable<VehiclesResponseDto>>());
         }
 
@@ -98,6 +108,17 @@ namespace TaxiApp.Backend.Api.Controllers
         [HttpPatch("AssignVehicleToDriver/{vehicleId}")]
         public async Task<IActionResult> AssignVehicleToDriver([FromRoute] int vehicleId , [FromBody] AssignVehicleDto dto)
         {
+            if (await userBlockRepository.IsUserBlocked(dto.DriverId))
+                return StatusCode(403, new
+                {
+                    message = "حسابك محظور، لا يمكنك تنفيذ هذه العملية"
+                });
+
+            if (! await userRepository.IsUserActive(dto.DriverId))
+                return StatusCode(403, new
+                {
+                    message = "حسابك غير نشط ، لا يمكنك تنفيذ هذه العملية"
+                });
             var result = await vehicleRepository.AssignVehicleToDriver(vehicleId,dto.DriverId);
             if (!result)
             {

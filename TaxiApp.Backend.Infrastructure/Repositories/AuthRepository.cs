@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using TaxiApp.Backend.Core;
@@ -224,11 +225,69 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
                     throw new Exception("تم رفض طلب تسجيلك.");
             }
 
-            var token = jwtService.GenerateToken(user, role);
+            // ✅ إنشاء Access Token (30 دقيقة)
+            var accessToken = jwtService.GenerateToken(user, role);
+
+            // ✅ إنشاء Refresh Token (14 يوم)
+            var refreshToken = new RefreshToken
+            {
+                Token = GenerateRefreshToken(),
+                ExpiresAt = DateTime.UtcNow.AddDays(14), // مدة الصلاحية 14 يوم
+                UserId = user.Id
+            };
+
+            _context.RefreshTokens.Add(refreshToken);
+            await _context.SaveChangesAsync();
 
             return new LoginResponse
             {
-                Token = token,
+                Token = accessToken,
+                RefreshToken = refreshToken.Token,
+                UserId = user.Id,
+                Role = role
+            };
+        }
+
+        private string GenerateRefreshToken()
+        {
+            var randomBytes = RandomNumberGenerator.GetBytes(64);
+            return Convert.ToBase64String(randomBytes);
+        }
+
+        public async Task<LoginResponse?> RefreshTokenAsync(string refreshToken)
+        {
+            var existingToken = await _context.RefreshTokens
+        .Include(r => r.User)
+        .FirstOrDefaultAsync(r => r.Token == refreshToken);
+
+            if (existingToken == null || existingToken.IsRevoked || existingToken.ExpiresAt < DateTime.UtcNow)
+                return null;
+
+            var user = existingToken.User;
+            var roles = await userManager.GetRolesAsync(user);
+            var role = roles.FirstOrDefault() ?? "Passenger";
+
+            // إبطال التوكن القديم (Rotate)
+            existingToken.IsRevoked = true;
+
+            // إنشاء Refresh Token جديد (14 يوم)
+            var newRefreshToken = new RefreshToken
+            {
+                Token = GenerateRefreshToken(),
+                ExpiresAt = DateTime.UtcNow.AddDays(14),
+                UserId = user.Id
+            };
+
+            _context.RefreshTokens.Add(newRefreshToken);
+            await _context.SaveChangesAsync();
+
+            // إنشاء Access Token جديد
+            var newAccessToken = jwtService.GenerateToken(user, role);
+
+            return new LoginResponse
+            {
+                Token = newAccessToken,
+                RefreshToken = newRefreshToken.Token,
                 UserId = user.Id,
                 Role = role
             };
@@ -489,5 +548,19 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
 
             return false;
         }
+
+        public async Task RevokeRefreshTokenAsync(string refreshToken)
+        {
+            var token = await _context.RefreshTokens
+                .FirstOrDefaultAsync(r => r.Token == refreshToken);
+
+            if (token != null)
+            {
+                token.IsRevoked = true;
+                await _context.SaveChangesAsync();
+            }
+        }
+
+
     }
 }

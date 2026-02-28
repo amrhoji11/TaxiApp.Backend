@@ -21,5 +21,8 @@ namespace TaxiApp.Backend.Core.Interfaces
 
         Task<string> RequestChangePhoneNumberAsync(string userId, string newPhoneNumber);
         Task<bool> ConfirmChangePhoneNumberAsync(string userId, string newPhoneNumber, string token);
+
+        Task<LoginResponse?> RefreshTokenAsync(string refreshToken);
+        Task RevokeRefreshTokenAsync(string refreshToken);
     }
 }

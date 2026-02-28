@@ -11,7 +11,7 @@ namespace TaxiApp.Backend.Core.Interfaces
     public interface IDriverApprovalRepository
     {
         // جلب كل السائقين الذين ينتظرون الموافقة
-        Task<IEnumerable<DriverPendingResponseDto>> GetPendingDriversAsync();
+        Task<DriverPendingResponseListDto> GetPendingDriversAsync(int pageNumber = 1, int pageSize = 10);
 
         // الموافقة على السائق وتغيير حالته إلى Active
         Task<bool> ApproveDriverAsync(string officeId,string driverId);

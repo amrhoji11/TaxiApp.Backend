@@ -11,7 +11,7 @@ namespace TaxiApp.Backend.Core.Interfaces
     public interface IUserBlockRepository
     {
         Task<bool?> ToggleUserBlock(string userId,string officeId,ToggleUserBlockDto dto);
-        Task<IEnumerable<AllBlocksDto?>> GetAllBlocks();
+        Task<IEnumerable<AllBlocksDto?>> GetAllBlocks(int pageNumber = 1, int pageSize = 10);
         Task<bool> IsUserBlocked(string userId);
     }
 }

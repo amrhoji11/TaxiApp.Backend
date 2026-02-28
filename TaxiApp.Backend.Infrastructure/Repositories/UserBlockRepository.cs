@@ -21,11 +21,24 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
             this.context = context;
         }
 
-        public async Task<IEnumerable<AllBlocksDto?>> GetAllBlocks()
+        public async Task<IEnumerable<AllBlocksDto?>> GetAllBlocks(int pageNumber=1, int pageSize=10)
         {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            
             var now = DateTime.UtcNow;
-            var allUserBlocks = await context.UserBlocks.Include(a=>a.User).Where(a => a.StartsAt <= now && (a.EndsAt == null || a.EndsAt > now)).ToListAsync();
-            return  allUserBlocks.Select(b=> new AllBlocksDto
+
+         var allUserBlocks = await context.UserBlocks
+        .Include(a => a.User)
+        .Where(a => a.StartsAt <= now && (a.EndsAt == null || a.EndsAt > now))
+        .OrderBy(a => a.StartsAt) // ترتيب مهم لتثبيت الصفحات
+        .Skip((pageNumber - 1) * pageSize)
+        .Take(pageSize)
+        .ToListAsync();
+
+            
+            return allUserBlocks.Select(b=> new AllBlocksDto
             {
                 UserId = b.UserId,
                 FirstName = b.User.FirstName,
@@ -41,8 +54,12 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
         public async Task<bool> IsUserBlocked(string userId)
         {
             var now = DateTime.UtcNow;
-            var isBlocked = await context.UserBlocks.Include(a => a.User).AnyAsync(a=>a.UserId==userId && (a.EndsAt==null ||a.EndsAt>now ));
-            return isBlocked;
+            var isBlocked = await context.UserBlocks.FirstOrDefaultAsync(a=>a.UserId==userId && (a.EndsAt==null ||a.EndsAt>now ));
+            if (isBlocked == null)
+            {
+                return false;
+            }
+            return true;
         }
 
         public async Task<bool?> ToggleUserBlock(string userId, string officeId, ToggleUserBlockDto dto)

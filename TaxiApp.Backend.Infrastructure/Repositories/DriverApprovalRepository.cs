@@ -20,13 +20,20 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<DriverPendingResponseDto>> GetPendingDriversAsync()
+        public async Task<DriverPendingResponseListDto> GetPendingDriversAsync(int pageNumber = 1, int pageSize=10)
         {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            var countDrivers = await _context.DriverApprovals.AsNoTracking().Where(a=>a.Status== ApprovalStatus.pending).CountAsync();
+
             // جلب السائقين مع بياناتهم الشخصية من جدول Users
             var drivers = await _context.DriverApprovals
         .Include(a => a.Driver)
             .ThenInclude(d => d.User)
         .Where(a => a.Status == ApprovalStatus.pending)
+        .OrderBy(a=>a.CreatedAt)
+        .Skip((pageNumber - 1) * pageSize).Take(pageSize)
         .Select(a => new DriverPendingResponseDto
         {
             UserId= a.DriverId,
@@ -35,8 +42,11 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
         })
         .ToListAsync();
 
-            return drivers;
-
+            return new DriverPendingResponseListDto
+            {
+                Count = countDrivers,
+                Drivers = drivers
+            };
 
         }
 

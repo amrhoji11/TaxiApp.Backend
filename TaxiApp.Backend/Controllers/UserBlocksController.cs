@@ -42,9 +42,9 @@ namespace TaxiApp.Backend.Api.Controllers
         }
 
         [HttpGet("GetAllBlocks")]
-        public async Task<IActionResult> GetAllBlocks()
+        public async Task<IActionResult> GetAllBlocks([FromQuery] int pageNumber, [FromQuery] int pageSize)
         {
-            var result = await userBlockRepository.GetAllBlocks();
+            var result = await userBlockRepository.GetAllBlocks(pageNumber, pageSize);
             if (result==null)
             {
                 return NotFound();

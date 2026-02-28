@@ -39,8 +39,12 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
             return all.FirstOrDefault();
         }
 
-        public async Task<IEnumerable<T>> GetAll(Expression<Func<T, bool>>? expression = null, Expression<Func<T, object>>?[] includes = null, bool isTracked = true)
+        public async Task<IEnumerable<T>> GetAll(Expression<Func<T, bool>>? expression = null, Expression<Func<T, object>>?[] includes = null, bool isTracked = true, int pageNumber = 1, int pageSize = 10)
         {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+
+
             IQueryable<T> entity= dbSet;
             if (expression is not null)
             {
@@ -64,7 +68,9 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
 
             }
 
-            return await entity.ToListAsync();
+            return await entity.Skip((pageNumber - 1) * pageSize)
+                               .Take(pageSize)
+                               .ToListAsync();
         }
 
         public async Task<bool> RemoveAsync(int id)

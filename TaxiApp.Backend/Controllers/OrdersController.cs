@@ -16,18 +16,20 @@ namespace TaxiApp.Backend.Api.Controllers
     {
         private readonly IOrderRepository orderRepository;
         private readonly IUserBlockRepository userBlockRepository;
+        private readonly IUserRepository userRepository;
 
-        public OrdersController(IOrderRepository orderRepository, IUserBlockRepository userBlockRepository)
+        public OrdersController(IOrderRepository orderRepository, IUserBlockRepository userBlockRepository,IUserRepository userRepository)
         {
             this.orderRepository = orderRepository;
             this.userBlockRepository = userBlockRepository;
+            this.userRepository = userRepository;
         }
 
-        private async Task<bool> IsBlocked(string userId)
-        {
-            return await userBlockRepository.IsUserBlocked(userId);
+        
 
-        }
+        
+
+       
 
         [HttpPost("CreateOrder")]
         public async Task<IActionResult> CreateOrder(CreateOrderDto dto)
@@ -38,10 +40,16 @@ namespace TaxiApp.Backend.Api.Controllers
                 return Unauthorized(" لم يتم العثور على هوية المستخدم ");
             }
 
-            if (await IsBlocked(PassengerId))
+            if (await userBlockRepository.IsUserBlocked(PassengerId))
                 return StatusCode(403, new
                 {
                     message = "حسابك محظور، لا يمكنك تنفيذ هذه العملية"
+                });
+
+            if (!await userRepository.IsUserActive(PassengerId))
+                return StatusCode(403, new
+                {
+                    message = "حسابك غير نشط ، لا يمكنك تنفيذ هذه العملية"
                 });
 
             var result= await orderRepository.CreateOrder(PassengerId,dto);
@@ -55,16 +63,27 @@ namespace TaxiApp.Backend.Api.Controllers
         }
 
         [HttpGet("GetAll")]
-        public async Task<IActionResult> GetAllOrders()
+        public async Task<IActionResult> GetAllOrders([FromQuery] int pageNumber, [FromQuery] int pageSize)
         {
             var passengerId = User.FindFirstValue("UserId");
 
-            if (await IsBlocked(passengerId))
+            if (await userBlockRepository.IsUserBlocked(passengerId))
                 return StatusCode(403, new
                 {
                     message = "حسابك محظور، لا يمكنك تنفيذ هذه العملية"
                 });
-            var result = await orderRepository.GetAll(a=>a.PassengerId==passengerId);
+
+            if (!await userRepository.IsUserActive(passengerId))
+                return StatusCode(403, new
+                {
+                    message = "حسابك غير نشط ، لا يمكنك تنفيذ هذه العملية"
+                });
+
+            var result = await orderRepository.GetAll(a=>a.PassengerId==passengerId,
+                                                      includes: null,  // أو يمكنك إضافة includes إذا تريد جلب العلاقات
+                                                      isTracked: false,
+                                                      pageNumber: pageNumber,
+                                                      pageSize: pageSize);
             if (result==null)
             {
                 return NotFound();
@@ -82,10 +101,16 @@ namespace TaxiApp.Backend.Api.Controllers
                 return Unauthorized(" لم يتم العثور على هوية المستخدم ");
             }
 
-            if (await IsBlocked(passengerId))
+            if (await userBlockRepository.IsUserBlocked(passengerId))
                 return StatusCode(403, new
                 {
                     message = "حسابك محظور، لا يمكنك تنفيذ هذه العملية"
+                });
+
+            if (! await userRepository.IsUserActive(passengerId))
+                return StatusCode(403, new
+                {
+                    message = "حسابك غير نشط ، لا يمكنك تنفيذ هذه العملية"
                 });
 
             var result = await orderRepository.EditOrder(passengerId, id,dto);
@@ -105,10 +130,16 @@ namespace TaxiApp.Backend.Api.Controllers
                 return Unauthorized(" لم يتم العثور على هوية المستخدم ");
             }
 
-            if (await IsBlocked(passengerId))
+            if (await userBlockRepository.IsUserBlocked(passengerId))
                 return StatusCode(403, new
                 {
                     message = "حسابك محظور، لا يمكنك تنفيذ هذه العملية"
+                });
+
+            if (!await userRepository.IsUserActive(passengerId))
+                return StatusCode(403, new
+                {
+                    message = "حسابك غير نشط ، لا يمكنك تنفيذ هذه العملية"
                 });
 
             var result = await orderRepository.CancelOrder(passengerId,id);

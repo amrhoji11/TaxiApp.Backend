@@ -106,11 +106,26 @@ namespace TaxiApp.Backend.Api.Controllers
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             var success = await _authRepository.ConfirmChangePhoneNumberAsync(userId, request.NewPhoneNumber, request.Token);
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            var response = await _authRepository.RefreshTokenAsync(request.RefreshToken);
+
+            if (response == null)
+                return Unauthorized(new { Message = "Invalid refresh token" });
 
             if (success)
                 return Ok(new { message = "تم تغيير الرقم بنجاح. استخدم الرقم الجديد في تسجيل الدخول القادم." });
+            return Ok(response);
+        }
 
             return BadRequest(new { message = "الرمز غير صحيح أو انتهت صلاحيته." });
+        }
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
+        {
+            await _authRepository.RevokeRefreshTokenAsync(request.RefreshToken);
+            return Ok(new { Message = "Logged out successfully" });
         }
     }
 }

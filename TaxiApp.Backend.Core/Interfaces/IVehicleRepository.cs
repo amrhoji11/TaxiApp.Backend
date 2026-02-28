@@ -13,7 +13,7 @@ namespace TaxiApp.Backend.Core.Interfaces
     public interface IVehicleRepository:IRepository<Vehicle>
     {
         Task<Vehicle> AddVehicel(AddVehicleDto dto);
-        Task<IEnumerable<Vehicle>> GetUnassignedAsync();
+        Task<IEnumerable<Vehicle>> GetUnassignedAsync(int pageNumber = 1, int pageSize = 10);
         Task<bool> Unassigned(int vehicleId);
         Task<bool> ToggleActive(int vehicleId);
         Task<bool> EditVehicle(int id,EditVehicleDto dto);

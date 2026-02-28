@@ -173,6 +173,7 @@ namespace TaxiApp.Backend.Infrastructure.Data
         public DbSet<TripOrder> TripOrders { get; set; }
         public DbSet<UserBlock> UserBlocks { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
 
 
