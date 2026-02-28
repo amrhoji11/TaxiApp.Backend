@@ -18,6 +18,13 @@ namespace TaxiApp.Backend
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+
+
+
+            builder.Services.AddHttpContextAccessor();
+
             // 1. إضافة الـ Controllers مع منع الدوران اللانهائي (من كودك)
             builder.Services.AddControllers()
                 .AddJsonOptions(options =>
@@ -85,7 +92,6 @@ namespace TaxiApp.Backend
             builder.Services.AddScoped<IUserBlockRepository, UserBlockRepository>();
 
 
-
             builder.Services.AddScoped<JwtService>();
             builder.Services.AddScoped<IDriverApprovalRepository, DriverApprovalRepository>();
 
@@ -115,6 +121,12 @@ namespace TaxiApp.Backend
                 {
 
                     app.MapOpenApi();
+                }
+
+                if (app.Environment.IsDevelopment())
+                {
+                    app.UseSwagger();
+                    app.UseSwaggerUI();
                 }
 
                 app.UseHttpsRedirection();

@@ -1,10 +1,13 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TaxiApp.Backend.Core.DTO_S.AuthDto;
 using TaxiApp.Backend.Core.DTO_S.AuthDto.Requests;
 using TaxiApp.Backend.Core.Interfaces;
 using TaxiApp.Backend.Core.Models;
+
 
 namespace TaxiApp.Backend.Api.Controllers
 {
@@ -75,13 +78,39 @@ namespace TaxiApp.Backend.Api.Controllers
             }
         }
 
-        //[HttpPost("logout")]
-        //public async Task<IActionResult> Logout()
-        //{
-        //    await
-        //    return Ok(new { Message = "Logged out successfully" });
+        // 1. طلب كود التحقق للرقم الجديد
+        [Authorize]
+        [HttpPut("request-change-phone")]
+        public async Task<IActionResult> RequestChangePhone([FromBody] ChangePhoneRequest request)
+        {
+            // جلب الـ ID تبع المستخدم من التوكن (عشان نعرف مين اللي بطلب التغيير)
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-        //}
+            var result = await _authRepository.RequestChangePhoneNumberAsync(userId, request.NewPhoneNumber);
+
+            if (result.Contains("تم إرسال"))
+                return Ok(new { message = result });
+
+            return BadRequest(new { message = result });
+        }
+
+        // 2. تأكيد الكود وتغيير الرقم والـ UserName فعلياً
+        [Authorize]
+        [HttpPut("confirm-change-phone")]
+        public async Task<IActionResult> ConfirmChangePhone([FromBody] ConfirmChangePhoneRequest request)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var success = await _authRepository.ConfirmChangePhoneNumberAsync(userId, request.NewPhoneNumber, request.Token);
+
+            if (success)
+                return Ok(new { message = "تم تغيير الرقم بنجاح. استخدم الرقم الجديد في تسجيل الدخول القادم." });
+
+            return BadRequest(new { message = "الرمز غير صحيح أو انتهت صلاحيته." });
+        }
     }
 }

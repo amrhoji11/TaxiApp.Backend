@@ -28,7 +28,7 @@ namespace TaxiApp.Backend.Core
                 new Claim(ClaimTypes.Name, user.UserName ?? ""),
                 new Claim(ClaimTypes.MobilePhone, user.PhoneNumber ?? ""),
                 new Claim(ClaimTypes.Role, role), //  الآن نضع الدور الحقيقي هنا
-                new Claim("UserId", user.Id.ToString()) //  إضافة الـ UserId لتسهيل العمل لاحقاً
+               new Claim(ClaimTypes.NameIdentifier, user.Id),
             };
 
             // جلب المفتاح السري من الإعدادات

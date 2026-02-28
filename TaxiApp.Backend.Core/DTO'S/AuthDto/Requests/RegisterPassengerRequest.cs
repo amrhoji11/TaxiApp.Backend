@@ -15,9 +15,13 @@ namespace TaxiApp.Backend.Core.DTO_S.AuthDto
         [MinLength(3)]
         public string LastName { get; set; }
 
+        [MaxLength(10)]
+        [MinLength(10)]
         public string PhoneNumber { get; set; }
-       
-        
+
+        public string? ProfilePhotoUrl { get; set; }
+
+
 
     }
 }

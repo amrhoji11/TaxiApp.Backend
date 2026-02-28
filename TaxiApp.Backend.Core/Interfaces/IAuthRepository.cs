@@ -15,5 +15,11 @@ namespace TaxiApp.Backend.Core.Interfaces
         Task<LoginResponse> VerifyOtpAndLoginAsync(VerifyOtpRequest request);
         Task<RegisterPassengerResponse> RegisterPassengerAsync(RegisterPassengerRequest request);
         Task<RegisterDriverResponse> RegisterDriverAsync(RegisterDriverRequest request);
+
+        Task<bool> UpdatePassengerProfileAsync(string userId, UpdatePassengerRequest request);
+        Task<bool> UpdateDriverProfileAsync(string userId, UpdateDriverRequest request);
+
+        Task<string> RequestChangePhoneNumberAsync(string userId, string newPhoneNumber);
+        Task<bool> ConfirmChangePhoneNumberAsync(string userId, string newPhoneNumber, string token);
     }
 }

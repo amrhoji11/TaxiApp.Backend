@@ -170,7 +170,7 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
         {
             var vehicle = await Get(a => a.VehicleId == vehicleId);
             if (vehicle == null)
-            {
+            { 
                 return false;
             }
             vehicle.IsActive= !vehicle.IsActive;

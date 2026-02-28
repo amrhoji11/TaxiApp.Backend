@@ -1,15 +1,16 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TaxiApp.Backend.Core.Models;
 
 namespace TaxiApp.Backend.Core.DTO_S.AuthDto.Requests
 {
-    public class RegisterDriverRequest 
+    public class UpdateDriverRequest
     {
+
         [MinLength(3)]
         public string FirstName { get; set; }
 
@@ -19,13 +20,14 @@ namespace TaxiApp.Backend.Core.DTO_S.AuthDto.Requests
         [MaxLength(10)]
         [MinLength(10)]
         public string PhoneNumber { get; set; }
-   
+
 
         public string? Address { get; set; }
-        public string? ProfilePhotoUrl { get; set; }
+        public IFormFile? ProfilePhotoImg { get; set; }
+        // حذف الصورة
+        public bool RemoveProfilePhoto { get; set; } = false;
 
-
-
-
+        // حذف العنوان
+        public bool RemoveAddress { get; set; } = false;
     }
 }

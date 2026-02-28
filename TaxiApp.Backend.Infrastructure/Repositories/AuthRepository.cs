@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using Azure.Core;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -22,16 +24,19 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ApplicationDbContext _context;
         private readonly JwtService jwtService;
+        private readonly IHttpContextAccessor httpContextAccessor;
         private readonly RoleManager<IdentityRole> roleManager;
 
         public AuthRepository(UserManager<ApplicationUser> userManager,
             ApplicationDbContext context,
             JwtService jwtService,
+            IHttpContextAccessor httpContextAccessor,
             RoleManager<IdentityRole> roleManager)
         {
             this.userManager = userManager;
             this._context = context;
             this.jwtService = jwtService;
+            this.httpContextAccessor = httpContextAccessor;
             this.roleManager = roleManager;
         }
 
@@ -227,6 +232,262 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
                 UserId = user.Id,
                 Role = role
             };
+        }
+
+        
+
+        public async Task<bool> UpdatePassengerProfileAsync(
+     string userId,
+     UpdatePassengerRequest request)
+        {
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+                return false;
+
+            var passenger = await _context.Passengers
+                .FirstOrDefaultAsync(p => p.UserId == userId);
+
+            if (passenger == null)
+                return false;
+
+         
+            //  تحديث بيانات المستخدم
+         
+
+            if (!string.IsNullOrWhiteSpace(request.FirstName))
+                user.FirstName = request.FirstName;
+
+            if (!string.IsNullOrWhiteSpace(request.LastName))
+                user.LastName = request.LastName;
+
+            if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+                user.PhoneNumber = request.PhoneNumber;
+
+            await userManager.UpdateAsync(user);
+
+            
+            //  تحديث العنوان
+           
+
+            // تحديث عنوان جديد
+            if (!string.IsNullOrWhiteSpace(request.Address))
+            {
+                passenger.Address = request.Address;
+            }
+
+            // حذف العنوان
+            if (request.RemoveAddress)
+            {
+                passenger.Address = null;
+            }
+
+            
+            //  إدارة الصور
+           
+
+            var folderPath = Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "Images");
+
+            if (!Directory.Exists(folderPath))
+                Directory.CreateDirectory(folderPath);
+
+            // رفع صورة جديدة
+            if (request.ProfilePhotoImg != null &&
+                request.ProfilePhotoImg.Length > 0)
+            {
+                var file = request.ProfilePhotoImg;
+
+                var fileName = Guid.NewGuid().ToString() +
+                               Path.GetExtension(file.FileName);
+
+                var filePath = Path.Combine(folderPath, fileName);
+
+                using (var stream = System.IO.File.Create(filePath))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // حذف الصورة القديمة
+                if (!string.IsNullOrEmpty(passenger.ProfilePhotoUrl))
+                {
+                    var oldPath = Path.Combine(folderPath,
+                        passenger.ProfilePhotoUrl);
+
+                    if (System.IO.File.Exists(oldPath))
+                        System.IO.File.Delete(oldPath);
+                }
+
+                passenger.ProfilePhotoUrl = fileName;
+            }
+
+            // حذف الصورة
+            if (request.RemoveProfilePhoto)
+            {
+                if (!string.IsNullOrEmpty(passenger.ProfilePhotoUrl))
+                {
+                    var oldPath = Path.Combine(folderPath,
+                        passenger.ProfilePhotoUrl);
+
+                    if (System.IO.File.Exists(oldPath))
+                        System.IO.File.Delete(oldPath);
+                }
+
+                passenger.ProfilePhotoUrl = null;
+            }
+
+            passenger.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+
+
+
+        // تعديل بيانات السائق
+        public async Task<bool> UpdateDriverProfileAsync(
+     string userId,
+     UpdateDriverRequest request)
+        {
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+                return false;
+
+            var driver = await _context.Drivers
+                .FirstOrDefaultAsync(d => d.UserId == userId);
+
+            if (driver == null)
+                return false;
+
+            // =========================
+            // 1️⃣ تحديث بيانات المستخدم
+            // =========================
+
+            if (!string.IsNullOrWhiteSpace(request.FirstName))
+                user.FirstName = request.FirstName;
+
+            if (!string.IsNullOrWhiteSpace(request.LastName))
+                user.LastName = request.LastName;
+
+            if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+                user.PhoneNumber = request.PhoneNumber;
+
+            await userManager.UpdateAsync(user);
+
+            // =========================
+            // 2️⃣ تحديث العنوان
+            // =========================
+
+            // تحديث عنوان جديد
+            if (!string.IsNullOrWhiteSpace(request.Address))
+            {
+                driver.Address = request.Address;
+            }
+
+            // حذف العنوان
+            if (request.RemoveAddress)
+            {
+                driver.Address = null;
+            }
+
+            // =========================
+            // 3️⃣ إدارة الصور
+            // =========================
+
+            var folderPath = Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "Images");
+
+            if (!Directory.Exists(folderPath))
+                Directory.CreateDirectory(folderPath);
+
+            // رفع صورة جديدة
+            if (request.ProfilePhotoImg != null &&
+                request.ProfilePhotoImg.Length > 0)
+            {
+                var file = request.ProfilePhotoImg;
+
+                var fileName = Guid.NewGuid().ToString() +
+                               Path.GetExtension(file.FileName);
+
+                var filePath = Path.Combine(folderPath, fileName);
+
+                using (var stream = System.IO.File.Create(filePath))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // حذف القديمة
+                if (!string.IsNullOrEmpty(driver.ProfilePhotoUrl))
+                {
+                    var oldPath = Path.Combine(folderPath,
+                        driver.ProfilePhotoUrl);
+
+                    if (System.IO.File.Exists(oldPath))
+                        System.IO.File.Delete(oldPath);
+                }
+
+                driver.ProfilePhotoUrl = fileName;
+            }
+
+            // حذف الصورة
+            if (request.RemoveProfilePhoto)
+            {
+                if (!string.IsNullOrEmpty(driver.ProfilePhotoUrl))
+                {
+                    var oldPath = Path.Combine(folderPath,
+                        driver.ProfilePhotoUrl);
+
+                    if (System.IO.File.Exists(oldPath))
+                        System.IO.File.Delete(oldPath);
+                }
+
+                driver.ProfilePhotoUrl = null;
+            }
+
+            driver.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        // 1. طلب تغيير الرقم (إرسال رمز للرقم الجديد)
+        // 1. طلب تغيير الرقم (إرسال رمز للرقم الجديد)
+        public async Task<string> RequestChangePhoneNumberAsync(string userId, string newPhoneNumber)
+        {
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null) return "المستخدم غير موجود.";
+
+            var existingUser = await userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == newPhoneNumber);
+            if (existingUser != null) return "رقم الهاتف الجديد مسجل مسبقاً لمستخدم آخر.";
+
+            // ✅ التصحيح: حذف كلمة "Phone"
+            var token = await userManager.GenerateChangePhoneNumberTokenAsync(user, newPhoneNumber);
+
+            return $"تم إرسال رمز التحقق للرقم الجديد: {token}";
+        }
+
+        // 2. تأكيد الرمز وتغيير الرقم فعلياً
+        public async Task<bool> ConfirmChangePhoneNumberAsync(string userId, string newPhoneNumber, string token)
+        {
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null) return false;
+
+            var result = await userManager.ChangePhoneNumberAsync(user, newPhoneNumber, token);
+
+            if (result.Succeeded)
+            {
+                user.UserName = newPhoneNumber;
+                // تحديث الختم الأمني لإلغاء التوكنات القديمة
+                await userManager.UpdateSecurityStampAsync(user);
+                await userManager.UpdateAsync(user);
+                return true;
+            }
+
+            return false;
         }
     }
 }
