@@ -225,14 +225,17 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
                     throw new Exception("تم رفض طلب تسجيلك.");
             }
 
-            // ✅ إنشاء Access Token (30 دقيقة)
+            // إنشاء Access Token
             var accessToken = jwtService.GenerateToken(user, role);
 
-            // ✅ إنشاء Refresh Token (14 يوم)
+            // إنشاء Refresh Token آمن
+            var rawToken = GenerateRefreshToken();
+
             var refreshToken = new RefreshToken
             {
-                Token = GenerateRefreshToken(),
-                ExpiresAt = DateTime.UtcNow.AddDays(14), // مدة الصلاحية 14 يوم
+                TokenHash = ComputeHash(rawToken),
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddDays(14),
                 UserId = user.Id
             };
 
@@ -242,7 +245,7 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
             return new LoginResponse
             {
                 Token = accessToken,
-                RefreshToken = refreshToken.Token,
+                RefreshToken = rawToken, // يرجع فقط هنا
                 UserId = user.Id,
                 Role = role
             };
@@ -256,309 +259,136 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
 
         public async Task<LoginResponse?> RefreshTokenAsync(string refreshToken)
         {
-            var existingToken = await _context.RefreshTokens
-        .Include(r => r.User)
-        .FirstOrDefaultAsync(r => r.Token == refreshToken);
+            var tokenHash = ComputeHash(refreshToken);
 
-            if (existingToken == null || existingToken.IsRevoked || existingToken.ExpiresAt < DateTime.UtcNow)
+            var existingToken = await _context.RefreshTokens
+                .Include(r => r.User)
+                .FirstOrDefaultAsync(r => r.TokenHash == tokenHash);
+
+            if (existingToken == null)
+                return null;
+
+            if (existingToken.IsRevoked)
+                return null;
+
+            if (existingToken.ExpiresAt <= DateTime.UtcNow)
                 return null;
 
             var user = existingToken.User;
             var roles = await userManager.GetRolesAsync(user);
             var role = roles.FirstOrDefault() ?? "Passenger";
 
-            // إبطال التوكن القديم (Rotate)
+            // Rotate
             existingToken.IsRevoked = true;
+            existingToken.RevokedAt = DateTime.UtcNow;
 
-            // إنشاء Refresh Token جديد (14 يوم)
+            var newRawToken = GenerateRefreshToken();
+
             var newRefreshToken = new RefreshToken
             {
-                Token = GenerateRefreshToken(),
+                TokenHash = ComputeHash(newRawToken),
+                CreatedAt = DateTime.UtcNow,
                 ExpiresAt = DateTime.UtcNow.AddDays(14),
                 UserId = user.Id
             };
 
+            existingToken.ReplacedByTokenHash = newRefreshToken.TokenHash;
+
             _context.RefreshTokens.Add(newRefreshToken);
             await _context.SaveChangesAsync();
 
-            // إنشاء Access Token جديد
             var newAccessToken = jwtService.GenerateToken(user, role);
 
             return new LoginResponse
             {
                 Token = newAccessToken,
-                RefreshToken = newRefreshToken.Token,
+                RefreshToken = newRawToken,
                 UserId = user.Id,
                 Role = role
             };
         }
 
-        
 
-        public async Task<bool> UpdatePassengerProfileAsync(
-     string userId,
-     UpdatePassengerRequest request)
-        {
-            var user = await userManager.FindByIdAsync(userId);
-            if (user == null)
-                return false;
-
-            var passenger = await _context.Passengers
-                .FirstOrDefaultAsync(p => p.UserId == userId);
-
-            if (passenger == null)
-                return false;
-
-         
-            //  تحديث بيانات المستخدم
-         
-
-            if (!string.IsNullOrWhiteSpace(request.FirstName))
-                user.FirstName = request.FirstName;
-
-            if (!string.IsNullOrWhiteSpace(request.LastName))
-                user.LastName = request.LastName;
-
-            if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-                user.PhoneNumber = request.PhoneNumber;
-
-            await userManager.UpdateAsync(user);
-
-            
-            //  تحديث العنوان
-           
-
-            // تحديث عنوان جديد
-            if (!string.IsNullOrWhiteSpace(request.Address))
-            {
-                passenger.Address = request.Address;
-            }
-
-            // حذف العنوان
-            if (request.RemoveAddress)
-            {
-                passenger.Address = null;
-            }
-
-            
-            //  إدارة الصور
-           
-
-            var folderPath = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "Images");
-
-            if (!Directory.Exists(folderPath))
-                Directory.CreateDirectory(folderPath);
-
-            // رفع صورة جديدة
-            if (request.ProfilePhotoImg != null &&
-                request.ProfilePhotoImg.Length > 0)
-            {
-                var file = request.ProfilePhotoImg;
-
-                var fileName = Guid.NewGuid().ToString() +
-                               Path.GetExtension(file.FileName);
-
-                var filePath = Path.Combine(folderPath, fileName);
-
-                using (var stream = System.IO.File.Create(filePath))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                // حذف الصورة القديمة
-                if (!string.IsNullOrEmpty(passenger.ProfilePhotoUrl))
-                {
-                    var oldPath = Path.Combine(folderPath,
-                        passenger.ProfilePhotoUrl);
-
-                    if (System.IO.File.Exists(oldPath))
-                        System.IO.File.Delete(oldPath);
-                }
-
-                passenger.ProfilePhotoUrl = fileName;
-            }
-
-            // حذف الصورة
-            if (request.RemoveProfilePhoto)
-            {
-                if (!string.IsNullOrEmpty(passenger.ProfilePhotoUrl))
-                {
-                    var oldPath = Path.Combine(folderPath,
-                        passenger.ProfilePhotoUrl);
-
-                    if (System.IO.File.Exists(oldPath))
-                        System.IO.File.Delete(oldPath);
-                }
-
-                passenger.ProfilePhotoUrl = null;
-            }
-
-            passenger.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            return true;
-        }
+       
 
 
 
-
-        // تعديل بيانات السائق
-        public async Task<bool> UpdateDriverProfileAsync(
-     string userId,
-     UpdateDriverRequest request)
-        {
-            var user = await userManager.FindByIdAsync(userId);
-            if (user == null)
-                return false;
-
-            var driver = await _context.Drivers
-                .FirstOrDefaultAsync(d => d.UserId == userId);
-
-            if (driver == null)
-                return false;
-
-            // =========================
-            // 1️⃣ تحديث بيانات المستخدم
-            // =========================
-
-            if (!string.IsNullOrWhiteSpace(request.FirstName))
-                user.FirstName = request.FirstName;
-
-            if (!string.IsNullOrWhiteSpace(request.LastName))
-                user.LastName = request.LastName;
-
-            if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-                user.PhoneNumber = request.PhoneNumber;
-
-            await userManager.UpdateAsync(user);
-
-            // =========================
-            // 2️⃣ تحديث العنوان
-            // =========================
-
-            // تحديث عنوان جديد
-            if (!string.IsNullOrWhiteSpace(request.Address))
-            {
-                driver.Address = request.Address;
-            }
-
-            // حذف العنوان
-            if (request.RemoveAddress)
-            {
-                driver.Address = null;
-            }
-
-            // =========================
-            // 3️⃣ إدارة الصور
-            // =========================
-
-            var folderPath = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "Images");
-
-            if (!Directory.Exists(folderPath))
-                Directory.CreateDirectory(folderPath);
-
-            // رفع صورة جديدة
-            if (request.ProfilePhotoImg != null &&
-                request.ProfilePhotoImg.Length > 0)
-            {
-                var file = request.ProfilePhotoImg;
-
-                var fileName = Guid.NewGuid().ToString() +
-                               Path.GetExtension(file.FileName);
-
-                var filePath = Path.Combine(folderPath, fileName);
-
-                using (var stream = System.IO.File.Create(filePath))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                // حذف القديمة
-                if (!string.IsNullOrEmpty(driver.ProfilePhotoUrl))
-                {
-                    var oldPath = Path.Combine(folderPath,
-                        driver.ProfilePhotoUrl);
-
-                    if (System.IO.File.Exists(oldPath))
-                        System.IO.File.Delete(oldPath);
-                }
-
-                driver.ProfilePhotoUrl = fileName;
-            }
-
-            // حذف الصورة
-            if (request.RemoveProfilePhoto)
-            {
-                if (!string.IsNullOrEmpty(driver.ProfilePhotoUrl))
-                {
-                    var oldPath = Path.Combine(folderPath,
-                        driver.ProfilePhotoUrl);
-
-                    if (System.IO.File.Exists(oldPath))
-                        System.IO.File.Delete(oldPath);
-                }
-
-                driver.ProfilePhotoUrl = null;
-            }
-
-            driver.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            return true;
-        }
+    
 
         // 1. طلب تغيير الرقم (إرسال رمز للرقم الجديد)
         // 1. طلب تغيير الرقم (إرسال رمز للرقم الجديد)
-        public async Task<string> RequestChangePhoneNumberAsync(string userId, string newPhoneNumber)
+        public async Task<string> RequestChangePhoneNumberAsync( string userId,string newPhoneNumber)
         {
             var user = await userManager.FindByIdAsync(userId);
-            if (user == null) return "المستخدم غير موجود.";
+            if (user == null)
+                return "المستخدم غير موجود";
 
-            var existingUser = await userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == newPhoneNumber);
-            if (existingUser != null) return "رقم الهاتف الجديد مسجل مسبقاً لمستخدم آخر.";
+            var existingUser = await userManager.Users
+                .FirstOrDefaultAsync(u => u.PhoneNumber == newPhoneNumber);
 
-            // ✅ التصحيح: حذف كلمة "Phone"
-            var token = await userManager.GenerateChangePhoneNumberTokenAsync(user, newPhoneNumber);
+            if (existingUser != null)
+                return "الرقم مستخدم مسبقاً";
 
-            return $"تم إرسال رمز التحقق للرقم الجديد: {token}";
+            var token = await userManager
+                .GenerateChangePhoneNumberTokenAsync(user, newPhoneNumber);
+
+            return token; // هنا المفروض تبعث SMS
         }
 
         // 2. تأكيد الرمز وتغيير الرقم فعلياً
-        public async Task<bool> ConfirmChangePhoneNumberAsync(string userId, string newPhoneNumber, string token)
+        public async Task<bool> ConfirmChangePhoneNumberAsync( string userId, string newPhoneNumber, string token)
         {
             var user = await userManager.FindByIdAsync(userId);
-            if (user == null) return false;
+            if (user == null)
+                return false;
 
-            var result = await userManager.ChangePhoneNumberAsync(user, newPhoneNumber, token);
+            var result = await userManager
+                .ChangePhoneNumberAsync(user, newPhoneNumber, token);
 
-            if (result.Succeeded)
-            {
-                user.UserName = newPhoneNumber;
-                // تحديث الختم الأمني لإلغاء التوكنات القديمة
-                await userManager.UpdateSecurityStampAsync(user);
-                await userManager.UpdateAsync(user);
-                return true;
-            }
+            if (!result.Succeeded)
+                return false;
 
-            return false;
+            // مهم جداً لو كنت تستخدم PhoneNumber كـ Username
+            user.UserName = newPhoneNumber;
+
+            await userManager.UpdateSecurityStampAsync(user);
+            await userManager.UpdateAsync(user);
+
+            return true;
         }
 
-        public async Task RevokeRefreshTokenAsync(string refreshToken)
+        public async Task<bool> RevokeRefreshTokenAsync(string userId, string refreshToken)
         {
-            var token = await _context.RefreshTokens
-                .FirstOrDefaultAsync(r => r.Token == refreshToken);
+            var tokenHash = ComputeHash(refreshToken);
 
-            if (token != null)
-            {
-                token.IsRevoked = true;
-                await _context.SaveChangesAsync();
-            }
+            var existingToken = await _context.RefreshTokens
+                .FirstOrDefaultAsync(r =>
+                    r.TokenHash == tokenHash &&
+                    r.UserId == userId);
+
+            if (existingToken == null)
+                return false;
+
+            if (existingToken.IsRevoked)
+                return false;
+
+            if (existingToken.ExpiresAt <= DateTime.UtcNow)
+                return false;
+
+            existingToken.IsRevoked = true;
+            existingToken.RevokedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        private string ComputeHash(string token)
+        {
+            using var sha256 = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(token);
+            var hash = sha256.ComputeHash(bytes);
+            return Convert.ToBase64String(hash);
         }
 
 

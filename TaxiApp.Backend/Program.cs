@@ -8,7 +8,8 @@ using TaxiApp.Backend.Core.Models;
 using TaxiApp.Backend.Infrastructure.Data;
 using TaxiApp.Backend.Infrastructure.Repositories;
 using TaxiApp.Backend.Infrastructure;
-using TaxiApp.Backend.Core; // لضمان عمل DbSeeder
+using TaxiApp.Backend.Core;
+using TaxiApp.Backend.Infrastructure.Helper; // لضمان عمل DbSeeder
 
 namespace TaxiApp.Backend
 {
@@ -77,9 +78,14 @@ namespace TaxiApp.Backend
                 {
                     ValidateIssuer = true,
                     ValidateAudience = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidateLifetime = true, // 🔥 هذا أهم سطر
+                    ClockSkew = TimeSpan.Zero, // يمنع مهلة الـ 5 دقائق الافتراضية
+
                     ValidAudience = builder.Configuration["JWT:ValidAudience"],
                     ValidIssuer = builder.Configuration["JWT:ValidIssuer"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"]))
+                    IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"]))
                 };
             });
 
@@ -91,6 +97,12 @@ namespace TaxiApp.Backend
             builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
             builder.Services.AddScoped<IUserBlockRepository, UserBlockRepository>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IDriverRepository, DriverRepository>();
+
+            builder.Services.AddScoped<IPassengerRepository, PassengerRepository>();
+
+            builder.Services.AddHostedService<RefreshTokenCleanupService>();
+           
 
 
 

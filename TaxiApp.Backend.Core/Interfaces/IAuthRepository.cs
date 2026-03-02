@@ -16,13 +16,11 @@ namespace TaxiApp.Backend.Core.Interfaces
         Task<RegisterPassengerResponse> RegisterPassengerAsync(RegisterPassengerRequest request);
         Task<RegisterDriverResponse> RegisterDriverAsync(RegisterDriverRequest request);
 
-        Task<bool> UpdatePassengerProfileAsync(string userId, UpdatePassengerRequest request);
-        Task<bool> UpdateDriverProfileAsync(string userId, UpdateDriverRequest request);
 
         Task<string> RequestChangePhoneNumberAsync(string userId, string newPhoneNumber);
         Task<bool> ConfirmChangePhoneNumberAsync(string userId, string newPhoneNumber, string token);
 
         Task<LoginResponse?> RefreshTokenAsync(string refreshToken);
-        Task RevokeRefreshTokenAsync(string refreshToken);
+        Task<bool> RevokeRefreshTokenAsync(string userId, string refreshToken);
     }
 }
