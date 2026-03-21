@@ -34,7 +34,7 @@ namespace TaxiApp.Backend.Api.Controllers
         [HttpPost("CreateOrder")]
         public async Task<IActionResult> CreateOrder(CreateOrderDto dto)
         {
-            var PassengerId = User.FindFirstValue("UserId");
+            var PassengerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (PassengerId==null)
             {
                 return Unauthorized(" لم يتم العثور على هوية المستخدم ");
@@ -65,7 +65,7 @@ namespace TaxiApp.Backend.Api.Controllers
         [HttpGet("GetAll")]
         public async Task<IActionResult> GetAllOrders([FromQuery] int pageNumber, [FromQuery] int pageSize)
         {
-            var passengerId = User.FindFirstValue("UserId");
+            var passengerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (await userBlockRepository.IsUserBlocked(passengerId))
                 return StatusCode(403, new
@@ -95,7 +95,7 @@ namespace TaxiApp.Backend.Api.Controllers
 
         public async Task<IActionResult> EditOrder([FromRoute] int id , [FromBody] EditOrderDto dto)
         {
-            var passengerId = User.FindFirstValue("UserId");
+            var passengerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (passengerId == null)
             {
                 return Unauthorized(" لم يتم العثور على هوية المستخدم ");
@@ -124,7 +124,7 @@ namespace TaxiApp.Backend.Api.Controllers
 
         public async Task<IActionResult> CancelOrder([FromRoute] int id)
         {
-            var passengerId = User.FindFirstValue("UserId");
+            var passengerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (passengerId == null)
             {
                 return Unauthorized(" لم يتم العثور على هوية المستخدم ");

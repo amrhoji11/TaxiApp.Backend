@@ -153,6 +153,13 @@ namespace TaxiApp.Backend.Infrastructure.Data
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
+            builder.Entity<Vehicle>()
+                   .HasIndex(v => v.DriverId)
+                   .IsUnique()
+                   .HasFilter("[IsCurrent] = 1");
+
+            builder.Entity<RefreshToken>().HasIndex(r => new { r.UserId, r.IsRevoked });
+
         }
 
         public DbSet<Driver> Drivers { get; set; }

@@ -12,7 +12,8 @@ namespace TaxiApp.Backend.Core.Models
         
         available = 0,
         busy = 1,
-        offline = 2
+        Shared = 2,
+        offline = 3
     }
     public class Driver
     {

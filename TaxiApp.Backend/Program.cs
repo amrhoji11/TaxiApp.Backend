@@ -100,14 +100,30 @@ namespace TaxiApp.Backend
             builder.Services.AddScoped<IDriverRepository, DriverRepository>();
 
             builder.Services.AddScoped<IPassengerRepository, PassengerRepository>();
+            builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+            builder.Services.AddSingleton<ActiveTripStore>();
 
             builder.Services.AddHostedService<RefreshTokenCleanupService>();
-           
+            builder.Services.AddHostedService<DatabaseCleanupService>();
+            builder.Services.AddSignalR();
+
+
 
 
 
             builder.Services.AddScoped<JwtService>();
             builder.Services.AddScoped<IDriverApprovalRepository, DriverApprovalRepository>();
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                    policy =>
+                    {
+                        policy.AllowAnyOrigin()
+                              .AllowAnyMethod()
+                              .AllowAnyHeader();
+                    });
+            });
 
             var app = builder.Build();
 
@@ -137,13 +153,16 @@ namespace TaxiApp.Backend
                     app.MapOpenApi();
                 }
 
-                if (app.Environment.IsDevelopment())
-                {
+               
                     app.UseSwagger();
-                    app.UseSwaggerUI();
-                }
+                app.UseSwaggerUI(c => {
+                    c.RoutePrefix = string.Empty; // لفتح Swagger مباشرة عند فتح الرابط
+                });
+
+                app.MapHub<NotificationHub>("/notificationHub");
 
                 app.UseHttpsRedirection();
+                app.UseCors("AllowAll");
 
                 // الترتيب "المقدس"
                 app.UseAuthentication();

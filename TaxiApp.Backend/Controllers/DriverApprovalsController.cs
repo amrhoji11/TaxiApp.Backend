@@ -30,7 +30,7 @@ namespace TaxiApp.Backend.Api.Controllers
         [HttpPost("approve/{id}")]
         public async Task<IActionResult> ApproveDriver([FromRoute] string id)
         {
-            var officeId = User.FindFirstValue("UserId");
+            var officeId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (officeId == null)
             {
                 return Unauthorized();
