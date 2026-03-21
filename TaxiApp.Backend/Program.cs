@@ -37,9 +37,23 @@ namespace TaxiApp.Backend
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddOpenApi();
 
-            // 2. إعداد قاعدة البيانات (المشترك بينكما)
+            // 2. إعداد قاعدة البيانات (تبديل تلقائي بين SQL Server و PostgreSQL)
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            {
+                var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+                var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+
+                if (!string.IsNullOrEmpty(databaseUrl))
+                {
+                    // إذا وجد رابط DATABASE_URL (هذا يعني أننا على Render)
+                    options.UseNpgsql(databaseUrl);
+                }
+                else
+                {
+                    // إذا لم يجده (هذا يعني أننا نبرمج محلياً)
+                    options.UseSqlServer(connectionString);
+                }
+            });
 
             // 3. إعداد الـ Identity مع خيارات كلمة المرور (من كودك)
             builder.Services.AddIdentityCore<ApplicationUser>(options =>
