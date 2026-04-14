@@ -10,13 +10,26 @@ namespace TaxiApp.Backend.Core.Interfaces
     public interface INotificationRepository
     {
         Task SendNotificationAsync(
-        string userId,
-        NotificationType type,
-        string title,
-        string body,
-        int? orderId = null,
-        int? tripId = null);
+             string userId,
+             NotificationType type,
+             string title,
+             string body,
+             int? orderId = null,
+             int? tripId = null,
+             object? extraData = null,
+             bool saveToDb = true
+         );
 
+        Task SendOfficeNotificationAsync(
+             string officeUserId,
+             NotificationType type,
+             string title,
+             string body,
+             int? orderId = null,
+             int? tripId = null,
+             object? extraData = null,
+             bool saveToDb = true
+         );
 
     }
 }

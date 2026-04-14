@@ -24,7 +24,7 @@ namespace TaxiApp.Backend.Core.Models
         [MaxLength(20)]
         public string PlateNumber { get; set; }
 
-        public VehicleSize VehicleSize { get; set; }//حجم السيارة
+        public Enums VehicleSize { get; set; }//حجم السيارة
         public int Seats { get; set; }//عدد المقاعد المتوفرةللركاب
 
         public string Make { get; set; }//الشركة المصنعة مثل Kia

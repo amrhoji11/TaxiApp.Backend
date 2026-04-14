@@ -25,16 +25,33 @@ namespace TaxiApp.Backend.Infrastructure.Data
 
             base.OnModelCreating(builder);
 
+            builder.Entity<SystemSettings>();
+
+            builder.Entity<Order>(entity =>
+            {
+                
+                entity.Property(o => o.PickupLat).HasPrecision(18, 8);
+                entity.Property(o => o.PickupLng).HasPrecision(18, 8);
+                entity.Property(o => o.DropoffLat).HasPrecision(18, 8);
+                entity.Property(o => o.DropoffLng).HasPrecision(18, 8);
+            });
+
             builder.Entity<Driver>(entity =>
             {
-
+                entity.HasQueryFilter(d => !d.IsDeleted);
                 entity.HasOne(d => d.User)
                       .WithOne(u => u.Driver)
                       .HasForeignKey<Driver>(d => d.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
+                entity.Property(d => d.LastLat)
+    .HasPrecision(18, 8); // لضمان حفظ 8 أرقام بعد الفاصلة
+
+                entity.Property(d => d.LastLng)
+    .HasPrecision(18, 8);
             });
             builder.Entity<Passenger>(entity =>
             {
+                entity.HasQueryFilter(p => !p.IsDeleted);
                 entity.HasKey(d => d.UserId);
 
                 entity.HasOne(d => d.User)
@@ -160,10 +177,37 @@ namespace TaxiApp.Backend.Infrastructure.Data
 
             builder.Entity<RefreshToken>().HasIndex(r => new { r.UserId, r.IsRevoked });
 
+
+
+            builder.Entity<DriverLocation>(entity =>
+            {
+                // تحسين الحذف والبحث عن المواقع حسب الوقت
+                entity.HasIndex(x => x.RecordedAt);
+
+                // تأكد أيضاً من دقة الإحداثيات هنا كما فعلت في الجداول الأخرى
+                entity.Property(x => x.Lat).HasPrecision(18, 8);
+                entity.Property(x => x.Lng).HasPrecision(18, 8);
+            });
+
+
+
+            builder.Entity<Notification>(entity =>
+            {
+                // تحسين حذف الإشعارات القديمة
+                entity.HasIndex(x => x.CreatedAt);
+            });
+
         }
+
+
 
         public DbSet<Driver> Drivers { get; set; }
         public DbSet<DriverApproval> DriverApprovals { get; set; }
+        public DbSet<Complaint>  Complaints { get; set; }
+        public DbSet<Violation>  Violations  { get; set; }
+
+        public DbSet<SystemSettings> SystemSettings { get; set; }
+
         public DbSet<DriverLocation> DriverLocations { get; set; }
         public DbSet<Message> Messages { get; set; }
 
@@ -181,6 +225,8 @@ namespace TaxiApp.Backend.Infrastructure.Data
         public DbSet<UserBlock> UserBlocks { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+
+        public DbSet<FavoriteLocation> FavoriteLocations { get; set; }
 
 
 

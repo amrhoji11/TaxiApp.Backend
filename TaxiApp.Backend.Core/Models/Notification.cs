@@ -10,20 +10,31 @@ namespace TaxiApp.Backend.Core.Models
 {
     public enum NotificationType
     {
+        //----------------- Rate -------------------
+        RateTrip=0,
         // ---------------- Messages ----------------
-        MessageReceived = 0,
+        MessageReceived =1,
 
         // ---------------- Trip Notifications ----------------
         TripAssigned = 10,
         DriverArrived = 11,
         TripStarted = 12,
         TripCompleted = 13,
-        TripCancelled = 14,
+        DriverCancelledTrip = 14,
+        NewTripOffer = 15,
+        DriverRejectedTrip=16,
+        DriverAcceptedTrip =17,
+        PickedUp=18,
+
+
 
         // ---------------- Order Notifications ----------------
+        OrderCreated=19,
         OrderCancelled = 20,
         OrderNeedsReview = 21,
         OrderReviewed = 22,
+        NoDriverFound=23,
+        DelayWarning=24,
 
         // ---------------- Driver Approval ----------------
         DriverApprovalPending = 30,   // يروح للمكتب: سائق جديد يحتاج موافقة
@@ -32,7 +43,13 @@ namespace TaxiApp.Backend.Core.Models
 
         // ---------------- Office Queue ----------------
         DriverEnteredQueue = 40,      // يروح للمكتب: سائق دخل الطابور
-        DriverLeftQueue = 41          // يروح للمكتب: سائق غادر الطابور
+        DriverLeftQueue = 41  ,        // يروح للمكتب: سائق غادر الطابور
+
+
+        //----------------violation----------------------
+
+            Violation=50,
+        Complaint=51
     }
 
     public class Notification

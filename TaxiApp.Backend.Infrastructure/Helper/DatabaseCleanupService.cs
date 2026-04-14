@@ -1,10 +1,12 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TaxiApp.Backend.Core.Models;
 using TaxiApp.Backend.Infrastructure.Data;
 
 namespace TaxiApp.Backend.Infrastructure.Helper
@@ -12,10 +14,12 @@ namespace TaxiApp.Backend.Infrastructure.Helper
     public class DatabaseCleanupService : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
+       
 
         public DatabaseCleanupService(IServiceScopeFactory scopeFactory)
         {
             _scopeFactory = scopeFactory;
+            
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -33,24 +37,34 @@ namespace TaxiApp.Backend.Infrastructure.Helper
         {
             using var scope = _scopeFactory.CreateScope();
 
-            var context = scope.ServiceProvider
-                .GetRequiredService<ApplicationDbContext>();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            var date = DateTime.UtcNow.AddDays(-1);
+            var locationThreshold = DateTime.UtcNow.AddDays(-1);
+            var notificationThreshold = DateTime.UtcNow.AddDays(-3);
 
-            // حذف مواقع السائقين الأقدم من يوم
-            var oldLocations = context.DriverLocations
-                .Where(x => x.RecordedAt < date);
+            await context.DriverLocations
+                .Where(x => x.RecordedAt < locationThreshold)
+                .ExecuteDeleteAsync();
 
-            context.DriverLocations.RemoveRange(oldLocations);
+            await context.Notifications
+                .Where(x => x.CreatedAt < notificationThreshold)
+                .ExecuteDeleteAsync();
 
-            // حذف الإشعارات الأقدم من 7 أيام
-            var oldNotifications = context.Notifications
-                .Where(x => x.CreatedAt < DateTime.UtcNow.AddDays(-7));
+            var complaintThreshold = DateTime.UtcNow.AddMonths(-3);
 
-            context.Notifications.RemoveRange(oldNotifications);
+            await context.Complaints
+                .Where(c =>
+                    c.Status == ComplaintStatus.Resolved &&
+                    c.ResolvedAt != null &&
+                    c.ResolvedAt < complaintThreshold)
+                .ExecuteDeleteAsync();
 
-            await context.SaveChangesAsync();
+            await context.Violations
+                .Where(v =>
+                    v.Status == ViolationStatus.Resolved &&
+                    v.ResolvedAt != null &&
+                    v.ResolvedAt < complaintThreshold)
+                .ExecuteDeleteAsync();
         }
     }
 }

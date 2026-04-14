@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TaxiApp.Backend.Core.DTO_S;
 using TaxiApp.Backend.Core.DTO_S.AuthDto.Requests;
 using TaxiApp.Backend.Core.Interfaces;
 using TaxiApp.Backend.Core.Models;
@@ -42,14 +43,22 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
             if (!string.IsNullOrWhiteSpace(request.LastName))
                 user.LastName = request.LastName;
 
+           
+
+            if (request.RemoveAddress)
+            {
+                
+                user.Address = null;
+            }
+            else if (!string.IsNullOrWhiteSpace(request.Address))
+            {
+                
+                user.Address = request.Address;
+            }
+
             var updateResult = await userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)
                 return false;
-
-            if (request.RemoveAddress)
-                driver.Address = null;
-            else if (!string.IsNullOrWhiteSpace(request.Address))
-                driver.Address = request.Address;
 
             var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "Images");
 
@@ -97,5 +106,53 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
 
             return true;
         }
+
+
+        public async Task<List<DriverTripReportDto>> GetDriverTripsReportAsync(string driverId, DateTime? from, DateTime? to)
+        {
+            // جلب الرحلات للسائق + التفاصيل + التقييمات
+            var trips = await context.TripOrders
+                .Include(t => t.Order)
+                    .ThenInclude(o => o.Passenger)
+                .Include(t => t.Trip)
+                .Where(t => t.Trip.DriverId == driverId &&
+                            t.Trip.CompletedAt != null &&
+                            (!from.HasValue||t.Trip.CompletedAt.Value.Date >= from.Value.Date )&&
+                            (!to.HasValue || t.Trip.CompletedAt.Value.Date <= to.Value.Date))
+                .ToListAsync();
+
+            // جلب كل تقييمات الركاب مرة واحدة
+            var orderIds = trips.Select(t => t.OrderId).ToList();
+            var allRatings = await context.Ratings
+                .Where(r => orderIds.Contains(r.OrderId) && r.RaterUserId != driverId) // التقييم من الركاب فقط
+                .ToListAsync();
+
+            var report = trips.Select(t =>
+            {
+                TimeSpan duration = TimeSpan.Zero;
+                if (t.Trip.StartTime != null && t.Trip.CompletedAt != null)
+                    duration = t.Trip.CompletedAt.Value - t.Trip.StartTime.Value;
+
+                var rating = allRatings.FirstOrDefault(r => r.OrderId == t.OrderId);
+
+                return new DriverTripReportDto
+                {
+                    PassengerName = t.Order.Passenger != null
+                        ? $"{t.Order.Passenger.User.FirstName} {t.Order.Passenger.User.LastName}"
+                        : "Unknown",
+                    PickupLocation = t.Order?.PickupLocation ?? "N/A",
+                    Destination = t.Order?.DropoffLocation ?? "N/A",
+                    Duration = duration,
+                    Rating = rating?.Stars,
+                    Comment = rating?.Comment,
+                    CompletedAt = t.Trip.CompletedAt ?? DateTime.MinValue
+                };
+            }).ToList();
+
+            return report;
+        }
+
+
+       
     }
 }

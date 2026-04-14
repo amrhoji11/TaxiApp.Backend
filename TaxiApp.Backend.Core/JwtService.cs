@@ -43,7 +43,7 @@ namespace TaxiApp.Backend.Core
                 issuer: _configuration["JWT:ValidIssuer"], // يفضل إضافة المصدر
                 audience: _configuration["JWT:ValidAudience"], // والمستقبل
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(30),
+                expires: DateTime.UtcNow.AddHours(8),
                 signingCredentials: signingCredentials
             );
 

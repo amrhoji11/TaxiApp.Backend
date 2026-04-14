@@ -13,13 +13,13 @@ namespace TaxiApp.Backend.Api.Controllers
     [ApiController]
     [Authorize(Roles ="Admin")]
 
-    public class VehiclesController : ControllerBase
+    public class VehiclesController : BaseController
     {
         private readonly IVehicleRepository vehicleRepository;
         private readonly IUserBlockRepository userBlockRepository;
         private readonly IUserRepository userRepository;
 
-        public VehiclesController(IVehicleRepository vehicleRepository,IUserBlockRepository userBlockRepository,IUserRepository userRepository)
+        public VehiclesController(IVehicleRepository vehicleRepository,IUserBlockRepository userBlockRepository,IUserRepository userRepository) :base(userBlockRepository, userRepository)
         {
             this.vehicleRepository = vehicleRepository;
             this.userBlockRepository = userBlockRepository;
@@ -108,17 +108,10 @@ namespace TaxiApp.Backend.Api.Controllers
         [HttpPatch("AssignVehicleToDriver/{vehicleId}")]
         public async Task<IActionResult> AssignVehicleToDriver([FromRoute] int vehicleId , [FromBody] AssignVehicleDto dto)
         {
-            if (await userBlockRepository.IsUserBlocked(dto.DriverId))
-                return StatusCode(403, new
-                {
-                    message = "حسابك محظور، لا يمكنك تنفيذ هذه العملية"
-                });
+            
+            var accessCheck = await CheckUserAccessAsync(dto.DriverId);
+            if (accessCheck != null) return accessCheck;
 
-            if (! await userRepository.IsUserActive(dto.DriverId))
-                return StatusCode(403, new
-                {
-                    message = "حسابك غير نشط ، لا يمكنك تنفيذ هذه العملية"
-                });
             var result = await vehicleRepository.AssignVehicleToDriver(vehicleId,dto.DriverId);
             if (!result)
             {

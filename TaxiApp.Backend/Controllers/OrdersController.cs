@@ -6,21 +6,24 @@ using System.Security.Claims;
 using TaxiApp.Backend.Core.DTO_S;
 using TaxiApp.Backend.Core.Interfaces;
 using TaxiApp.Backend.Core.Models;
+using TaxiApp.Backend.Infrastructure.Repositories;
 
 namespace TaxiApp.Backend.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Roles = "Passenger")]
-    public class OrdersController : ControllerBase
+    public class OrdersController : BaseController
     {
         private readonly IOrderRepository orderRepository;
+        private readonly OrderService orderService;
         private readonly IUserBlockRepository userBlockRepository;
         private readonly IUserRepository userRepository;
 
-        public OrdersController(IOrderRepository orderRepository, IUserBlockRepository userBlockRepository,IUserRepository userRepository)
+        public OrdersController(IOrderRepository orderRepository, OrderService orderService , IUserBlockRepository userBlockRepository, IUserRepository userRepository): base(userBlockRepository, userRepository)
         {
             this.orderRepository = orderRepository;
+            this.orderService = orderService;
             this.userBlockRepository = userBlockRepository;
             this.userRepository = userRepository;
         }
@@ -35,24 +38,11 @@ namespace TaxiApp.Backend.Api.Controllers
         public async Task<IActionResult> CreateOrder(CreateOrderDto dto)
         {
             var PassengerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (PassengerId==null)
-            {
-                return Unauthorized(" لم يتم العثور على هوية المستخدم ");
-            }
 
-            if (await userBlockRepository.IsUserBlocked(PassengerId))
-                return StatusCode(403, new
-                {
-                    message = "حسابك محظور، لا يمكنك تنفيذ هذه العملية"
-                });
+            var accessCheck = await CheckUserAccessAsync(PassengerId);
+            if (accessCheck != null) return accessCheck;
 
-            if (!await userRepository.IsUserActive(PassengerId))
-                return StatusCode(403, new
-                {
-                    message = "حسابك غير نشط ، لا يمكنك تنفيذ هذه العملية"
-                });
-
-            var result= await orderRepository.CreateOrder(PassengerId,dto);
+            var result= await orderService.CreateAndAssign(PassengerId,dto);
             if (result==null)
             {
                 return BadRequest(result);
@@ -67,17 +57,8 @@ namespace TaxiApp.Backend.Api.Controllers
         {
             var passengerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (await userBlockRepository.IsUserBlocked(passengerId))
-                return StatusCode(403, new
-                {
-                    message = "حسابك محظور، لا يمكنك تنفيذ هذه العملية"
-                });
-
-            if (!await userRepository.IsUserActive(passengerId))
-                return StatusCode(403, new
-                {
-                    message = "حسابك غير نشط ، لا يمكنك تنفيذ هذه العملية"
-                });
+            var accessCheck = await CheckUserAccessAsync(passengerId);
+            if (accessCheck != null) return accessCheck;
 
             var result = await orderRepository.GetAll(a=>a.PassengerId==passengerId,
                                                       includes: null,  // أو يمكنك إضافة includes إذا تريد جلب العلاقات
@@ -96,22 +77,10 @@ namespace TaxiApp.Backend.Api.Controllers
         public async Task<IActionResult> EditOrder([FromRoute] int id , [FromBody] EditOrderDto dto)
         {
             var passengerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (passengerId == null)
-            {
-                return Unauthorized(" لم يتم العثور على هوية المستخدم ");
-            }
 
-            if (await userBlockRepository.IsUserBlocked(passengerId))
-                return StatusCode(403, new
-                {
-                    message = "حسابك محظور، لا يمكنك تنفيذ هذه العملية"
-                });
 
-            if (! await userRepository.IsUserActive(passengerId))
-                return StatusCode(403, new
-                {
-                    message = "حسابك غير نشط ، لا يمكنك تنفيذ هذه العملية"
-                });
+            var accessCheck = await CheckUserAccessAsync(passengerId);
+            if (accessCheck != null) return accessCheck;
 
             var result = await orderRepository.EditOrder(passengerId, id,dto);
 
@@ -125,22 +94,10 @@ namespace TaxiApp.Backend.Api.Controllers
         public async Task<IActionResult> CancelOrder([FromRoute] int id)
         {
             var passengerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (passengerId == null)
-            {
-                return Unauthorized(" لم يتم العثور على هوية المستخدم ");
-            }
 
-            if (await userBlockRepository.IsUserBlocked(passengerId))
-                return StatusCode(403, new
-                {
-                    message = "حسابك محظور، لا يمكنك تنفيذ هذه العملية"
-                });
 
-            if (!await userRepository.IsUserActive(passengerId))
-                return StatusCode(403, new
-                {
-                    message = "حسابك غير نشط ، لا يمكنك تنفيذ هذه العملية"
-                });
+            var accessCheck = await CheckUserAccessAsync(passengerId);
+            if (accessCheck != null) return accessCheck;
 
             var result = await orderRepository.CancelOrder(passengerId,id);
             return Ok(result);

@@ -12,7 +12,18 @@ namespace TaxiApp.Backend.Core.Models
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
+
+        public string? FullName => $"{FirstName} {LastName}";
+
+        public string? Address { get; set; }
+        public string? ProfilePhotoImg { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public string? Language { get; set; }
+        public bool NotificationsEnabled { get; set; } = true; // ✅ افتراضي شغال
+        public bool IsDarkModeEnabled { get; set; } = false;
+        public bool IsDeleted { get; set; } = false;
         public bool IsActive { get; set; } = true;
         public Passenger Passenger { get; set; }
         public Driver Driver { get; set; }

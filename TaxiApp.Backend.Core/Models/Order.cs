@@ -21,7 +21,8 @@ namespace TaxiApp.Backend.Core.Models
         PendingOfficeReview = 2,
         AssignedToTrip = 3,
         Cancelled = 4,
-        Completed = 5
+        Completed = 5,
+        NoDriverFound=6
     }
 
 
@@ -56,7 +57,7 @@ namespace TaxiApp.Backend.Core.Models
         public OrderPriority Priority { get; set; }
 
         // حجم السيارة المطلوبة للطلب (nullable: ممكن المستخدم ما يحدد الحجم)
-        public VehicleSize? RequiredVehicleSize { get; set; }
+        public Enums? RequiredVehicleSize { get; set; }
 
         // عدد الركاب في هذا الطلب
         public int PassengerCount { get; set; }
@@ -79,6 +80,15 @@ namespace TaxiApp.Backend.Core.Models
         // وقت إلغاء الطلب (nullable لأنه قد لا يتم إلغاء الطلب)
         public DateTime? CancelledAt { get; set; }
 
+        public DateTime? TripOfferSentAt { get; set; }
+        public string? LastOfferedDriverId { get; set; }
+
+        public bool IsManuallyAssigned { get; set; } = false;
+
+        public DateTime? ExpectedArrivalAt { get; set; } // الوقت المتوقع للوصول
+        public bool IsDelayNotified { get; set; } = false; // هل تم إرسال إشعار التأخير؟
+
+
         // ---------------- Navigation Properties ----------------
 
         // Navigation Property: الوصول إلى بيانات الراكب صاحب الطلب
@@ -87,7 +97,7 @@ namespace TaxiApp.Backend.Core.Models
 
         // علاقة Many-to-Many بين Trip و Order عن طريق جدول وسيط TripOrder
         // الطلب يمكن أن يكون ضمن رحلة (Trip) أو أكثر حسب تصميمك
-        public ICollection<TripOrder> TripOrders { get; set; }
+        public ICollection<TripOrder> TripOrders { get; set; }=new List<TripOrder>();
         public ICollection<OrderReview> Reviews { get; set; } = new List<OrderReview>();
         public ICollection<Message> Messages { get; set; } = new List<Message>();
 

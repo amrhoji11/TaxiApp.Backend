@@ -60,7 +60,7 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
                 OrderTime = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow,
                 Status = OrderStatus.Pending,
-                NeedsOfficeReview = dto.RequiredVehicleSize == VehicleSize.Large
+                NeedsOfficeReview = dto.RequiredVehicleSize == Enums.Large
 
 
             };

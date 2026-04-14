@@ -65,6 +65,7 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
             approval.Status = ApprovalStatus.approved;
             approval.ReviewedByUserId = officeId;
             approval.ReviewedAt = DateTime.UtcNow;
+            approval.Notes = null;
 
             // عند الموافقة نجعله Offline مبدئياً
             var driver = await _context.Drivers.FindAsync(driverId);
@@ -76,11 +77,94 @@ namespace TaxiApp.Backend.Infrastructure.Repositories
             return true;
         }
 
-        public async Task<Driver?> GetDriverByIdAsync(string driverId)
+
+
+        public async Task<bool> RejectDriverAsync(string officeId, string driverId, string? notes = null)
         {
-            return await _context.Drivers
+            var approval = await _context.DriverApprovals
+                .FirstOrDefaultAsync(a => a.DriverId == driverId);
+
+            if (approval == null)
+                return false;
+
+            if (approval.Status != ApprovalStatus.pending)
+                return false;
+
+            var driver = await _context.Drivers.FindAsync(driverId);
+            if (driver == null)
+                return false;
+
+            // 🔴 رفض السائق
+            approval.Status = ApprovalStatus.rejected;
+            approval.ReviewedByUserId = officeId;
+            approval.ReviewedAt = DateTime.UtcNow;
+            approval.Notes = notes ?? "No reason provided";
+            driver.Status = DriverStatus.rejected;
+
+
+
+
+
+
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+
+        public async Task<object> GetDriverDetailsAsync(string driverId)
+        {
+            var driver = await _context.Drivers
                 .Include(d => d.User)
+                .Include(d => d.Vehicles)
+                .Include(d => d.Trips)
+                    .ThenInclude(t => t.Ratings)
                 .FirstOrDefaultAsync(d => d.UserId == driverId);
+
+            if (driver == null)
+                return null;
+
+            var totalTrips = driver.Trips.Count();
+
+            var completedTrips = driver.Trips
+                .Count(t => t.Status == TripStatus.Completed);
+
+            var cancelledTrips = driver.Trips
+                .Count(t => t.Status == TripStatus.Cancelled);
+
+            var ratings = driver.Trips
+                .SelectMany(t => t.Ratings);
+
+            return new
+            {
+                DriverId = driver.UserId,
+
+                Name = driver.User.FirstName + " " + driver.User.LastName,
+                Email = driver.User.Email,
+                Phone = driver.User.PhoneNumber,
+
+                Status = driver.Status,
+                CreatedAt = driver.User.CreatedAt,
+
+                Vehicle = driver.Vehicles
+    .Select(v => new
+    {
+        v.Model,
+        v.PlateNumber
+    })
+    .FirstOrDefault(),
+
+                TotalTrips = totalTrips,
+                CompletedTrips = completedTrips,
+                CancelledTrips = cancelledTrips,
+
+                Rating = ratings.Any()
+                    ? ratings.Average(r => r.Stars)
+                    : 0,
+
+                RatingCount = ratings.Count()
+            };
         }
     }
 }

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace TaxiApp.Backend.Core.Models
 
 {
-
+    
     public enum TripStatus
     {
         Pending = 0,        // تم إنشاء الرحلة (لسا ما انربطت بسائق)
@@ -18,7 +18,9 @@ namespace TaxiApp.Backend.Core.Models
         DriverArrived = 2,  // السائق وصل لنقطة الالتقاط
         InProgress = 3,     // الرحلة بدأت
         Completed = 4,      // الرحلة انتهت
-        Cancelled = 5       // الرحلة انلغت
+        Cancelled = 5,// الرحلة انلغت
+        SearchingDriver =6 ,
+        NoDriverFound=7
     }
 
     public class Trip
@@ -51,6 +53,13 @@ namespace TaxiApp.Backend.Core.Models
         // آخر وقت تم تحديث بيانات الرحلة فيه (nullable لأنه ممكن ما صار تحديث)
         public DateTime? UpdatedAt { get; set; }
 
+        public DateTime? CompletedAt { get; set; }
+        public DateTime? TripOfferSentAt { get; set; }
+        public string? LastOfferedDriverId { get; set; }
+
+        public bool IsManuallyAssigned { get; set; } = false;
+        public DateTime? ExpectedArrivalAt { get; set; } // الوقت المتوقع للوصول
+        public bool IsDelayNotified { get; set; } = false; // هل تم إرسال إشعار التأخير؟
         // ---------------- Navigation Properties (العلاقات) ----------------
 
         // Navigation Property: الوصول لبيانات السائق المرتبط بهذه الرحلة

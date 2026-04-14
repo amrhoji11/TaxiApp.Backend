@@ -27,7 +27,7 @@ namespace TaxiApp.Backend.Core.DTO_S
         // Order preferences
         public OrderPriority Priority { get; set; } = OrderPriority.Normal;
 
-        public VehicleSize? RequiredVehicleSize { get; set; }
+        public Enums? RequiredVehicleSize { get; set; }
 
         [Range(1, 10)]
         public int PassengerCount { get; set; }

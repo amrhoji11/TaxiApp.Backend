@@ -12,7 +12,10 @@ namespace TaxiApp.Backend.Core.Models
         Assigned = 0,     // الطلب ضمن الرحلة
         PickedUp = 1,     // تم ركوب الراكب
         DroppedOff = 2,   // تم إنزال الراكب
-        Cancelled = 3     // هذا الطلب انلغى داخل الرحلة
+        Cancelled = 3,     // هذا الطلب انلغى داخل الرحلة
+        Unassigned = 4,
+        DriverArrived=5
+
     }
     public class TripOrder
     {
@@ -35,6 +38,9 @@ namespace TaxiApp.Backend.Core.Models
         // مثال: Assigned / PickedUp / DroppedOff / Cancelled ...
         // تختلف عن OrderStatus لأنها مرتبطة بالرحلة وليس بالطلب بشكل عام
         public TripOrderStatus StatusInTrip { get; set; }
+
+
+      
 
         // ---------------- Navigation Properties (Relationships) ----------------
 

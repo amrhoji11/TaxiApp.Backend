@@ -41,5 +41,38 @@ namespace TaxiApp.Backend.Api.Controllers
 
             return Ok(new { message = "Driver approved successfully!" });
         }
+
+
+
+        [HttpPost("reject/{id}")]
+        public async Task<IActionResult> RejectDriver(
+    [FromRoute] string id,
+    [FromBody] RejectDriverDto dto)
+        {
+            var officeId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (officeId == null)
+                return Unauthorized();
+
+            var result = await _driverApprovalRepository
+                .RejectDriverAsync(officeId, id, dto?.Notes);
+
+            if (!result)
+                return NotFound("Driver not found or already processed");
+
+            return Ok(new { message = "Driver rejected successfully!" });
+        }
+
+
+        [HttpGet("{driverId}")]
+        public async Task<IActionResult> GetDriverDetails([FromRoute] string driverId)
+        {
+            var driver = await _driverApprovalRepository.GetDriverDetailsAsync(driverId);
+
+            if (driver == null)
+                return NotFound(new { message = "Driver not found" });
+
+            return Ok(driver);
+        }
     }
 }

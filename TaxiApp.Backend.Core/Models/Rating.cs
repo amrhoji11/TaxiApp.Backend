@@ -15,6 +15,9 @@ namespace TaxiApp.Backend.Core.Models
         // Foreign Key: يربط التقييم بالرحلة التي حصل فيها التقييم
         public int TripId { get; set; }
 
+        public int OrderId { get; set; }
+
+
         // Foreign Key: الشخص الذي كتب التقييم (الذي قيّم)
         // مثال: Passenger يقيّم Driver
         [Required]
@@ -44,5 +47,7 @@ namespace TaxiApp.Backend.Core.Models
 
         // Navigation: المستخدم الذي تم تقييمه
         public ApplicationUser Target { get; set; }
+
+        public Order Order { get; set; }
     }
 }

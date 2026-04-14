@@ -163,6 +163,9 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
@@ -184,6 +187,15 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsDarkModeEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Language")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -202,6 +214,9 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<bool>("NotificationsEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<string>("PasswordHash")
                         .HasColumnType("nvarchar(max)");
 
@@ -210,6 +225,9 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("ProfilePhotoImg")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
@@ -234,19 +252,71 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("TaxiApp.Backend.Core.Models.Complaint", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AgainstUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReasonType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SenderId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TargetType")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TripId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ViolationId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ViolationId");
+
+                    b.ToTable("Complaints");
+                });
+
             modelBuilder.Entity("TaxiApp.Backend.Core.Models.Driver", b =>
                 {
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("Address")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<decimal?>("LastLat")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 8)
+                        .HasColumnType("decimal(18,8)");
 
                     b.Property<decimal?>("LastLng")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 8)
+                        .HasColumnType("decimal(18,8)");
 
                     b.Property<DateTime?>("LastSeenAt")
                         .HasColumnType("datetime2");
@@ -306,10 +376,12 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal>("Lat")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 8)
+                        .HasColumnType("decimal(18,8)");
 
                     b.Property<decimal>("Lng")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 8)
+                        .HasColumnType("decimal(18,8)");
 
                     b.Property<DateTime>("RecordedAt")
                         .HasColumnType("datetime2");
@@ -321,9 +393,47 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
 
                     b.HasIndex("DriverId");
 
+                    b.HasIndex("RecordedAt");
+
                     b.HasIndex("TripId");
 
                     b.ToTable("DriverLocations");
+                });
+
+            modelBuilder.Entity("TaxiApp.Backend.Core.Models.FavoriteLocation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("FavoriteLocations");
                 });
 
             modelBuilder.Entity("TaxiApp.Backend.Core.Models.Message", b =>
@@ -411,6 +521,8 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
 
                     b.HasKey("NotificationId");
 
+                    b.HasIndex("CreatedAt");
+
                     b.HasIndex("OrderId");
 
                     b.HasIndex("TripId");
@@ -467,13 +579,27 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal?>("DropoffLat")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 8)
+                        .HasColumnType("decimal(18,8)");
 
                     b.Property<decimal?>("DropoffLng")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 8)
+                        .HasColumnType("decimal(18,8)");
 
                     b.Property<string>("DropoffLocation")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ExpectedArrivalAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDelayNotified")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsManuallyAssigned")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastOfferedDriverId")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("NeedsOfficeReview")
@@ -490,10 +616,12 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal>("PickupLat")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 8)
+                        .HasColumnType("decimal(18,8)");
 
                     b.Property<decimal>("PickupLng")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 8)
+                        .HasColumnType("decimal(18,8)");
 
                     b.Property<string>("PickupLocation")
                         .IsRequired()
@@ -507,6 +635,9 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("TripOfferSentAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -560,8 +691,8 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("Address")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<string>("ProfilePhotoUrl")
                         .HasColumnType("nvarchar(max)");
@@ -586,6 +717,9 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("RatedAt")
                         .HasColumnType("datetime2");
 
@@ -604,6 +738,8 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("RatingId");
+
+                    b.HasIndex("OrderId");
 
                     b.HasIndex("RaterUserId");
 
@@ -651,9 +787,25 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                     b.HasIndex("TokenHash")
                         .IsUnique();
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "IsRevoked");
 
                     b.ToTable("RefreshTokens");
+                });
+
+            modelBuilder.Entity("TaxiApp.Backend.Core.Models.SystemSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SystemSettings");
                 });
 
             modelBuilder.Entity("TaxiApp.Backend.Core.Models.Trip", b =>
@@ -665,6 +817,9 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TripId"));
 
                     b.Property<DateTime?>("AssignedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAt")
@@ -679,11 +834,26 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                     b.Property<DateTime?>("EndTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("ExpectedArrivalAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDelayNotified")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsManuallyAssigned")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastOfferedDriverId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("StartTime")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("TripOfferSentAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -810,9 +980,50 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
 
                     b.HasKey("VehicleId");
 
-                    b.HasIndex("DriverId");
+                    b.HasIndex("DriverId")
+                        .IsUnique()
+                        .HasFilter("[IsCurrent] = 1");
 
                     b.ToTable("Vehicles");
+                });
+
+            modelBuilder.Entity("TaxiApp.Backend.Core.Models.Violation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DriverId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TripId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Violations");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -866,6 +1077,15 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TaxiApp.Backend.Core.Models.Complaint", b =>
+                {
+                    b.HasOne("TaxiApp.Backend.Core.Models.Violation", "Violation")
+                        .WithMany()
+                        .HasForeignKey("ViolationId");
+
+                    b.Navigation("Violation");
+                });
+
             modelBuilder.Entity("TaxiApp.Backend.Core.Models.Driver", b =>
                 {
                     b.HasOne("TaxiApp.Backend.Core.Models.ApplicationUser", "User")
@@ -910,6 +1130,17 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                     b.Navigation("Driver");
 
                     b.Navigation("Trip");
+                });
+
+            modelBuilder.Entity("TaxiApp.Backend.Core.Models.FavoriteLocation", b =>
+                {
+                    b.HasOne("TaxiApp.Backend.Core.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TaxiApp.Backend.Core.Models.Message", b =>
@@ -1022,6 +1253,12 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
 
             modelBuilder.Entity("TaxiApp.Backend.Core.Models.Rating", b =>
                 {
+                    b.HasOne("TaxiApp.Backend.Core.Models.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("TaxiApp.Backend.Core.Models.ApplicationUser", "Rater")
                         .WithMany("RatingsGiven")
                         .HasForeignKey("RaterUserId")
@@ -1039,6 +1276,8 @@ namespace TaxiApp.Backend.Infrastructure.Migrations
                         .HasForeignKey("TripId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Order");
 
                     b.Navigation("Rater");
 

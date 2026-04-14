@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,14 +14,17 @@ namespace TaxiApp.Backend.Core.Models
         available = 0,
         busy = 1,
         Shared = 2,
-        offline = 3
+        offline = 3,
+        rejected=4
+        
     }
     public class Driver
     {
         [Key]
         public string UserId { get; set; }
 
-        public string? Address { get; set; }
+        [NotMapped]
+        public string Address => User?.Address;
         public string? ProfilePhotoUrl { get; set; }
 
         public DriverStatus Status { get; set; }
@@ -28,8 +32,13 @@ namespace TaxiApp.Backend.Core.Models
         public decimal? LastLat { get; set; }
         public decimal? LastLng { get; set; }
 
+
         public DateTime? LastSeenAt { get; set; }
+
+
         public DateTime? UpdatedAt { get; set; }
+
+        public bool IsDeleted { get; set; }
 
         // Navigation
         public ApplicationUser User { get; set; }

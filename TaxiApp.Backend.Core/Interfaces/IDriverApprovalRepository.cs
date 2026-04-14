@@ -16,7 +16,9 @@ namespace TaxiApp.Backend.Core.Interfaces
         // الموافقة على السائق وتغيير حالته إلى Active
         Task<bool> ApproveDriverAsync(string officeId,string driverId);
 
+        Task<bool> RejectDriverAsync(string officeId, string driverId, string? notes = null);
+
         // جلب بيانات سائق معين بالتفصيل
-        Task<Driver?> GetDriverByIdAsync(string driverId);
+        Task<object> GetDriverDetailsAsync(string driverId);
     }
 }
